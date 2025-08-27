@@ -4,9 +4,11 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
+// using UnityEngine.UIElements;
 
 public class GameManager : MonoBehaviour
 {
+    public static GameManager Instance;
     public bool isGameActive;
     public int score;
     public int lives;
@@ -24,6 +26,8 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI pauseText;
     public GameObject titleText;
     public GameObject gameOverText;
+    [SerializeField] private AudioClip crash;
+
     private int randNum;
     private float enemySpawnRate;
     private float treeSpawnRate;
@@ -32,14 +36,24 @@ public class GameManager : MonoBehaviour
     private const float zBound = 5;
     private const float yValue = 3;
     private const float xBound = 12;
-    private AudioSource music;
-    private Slider volumeSlider;
-    // private readonly Direction treeSelectedDirection;
+    private AudioSource soundEffects;
+    [SerializeField] private AudioSource music;
+    [SerializeField] private Slider musicVolumeSlider;
+    [SerializeField] private Slider soundEffectsVolumeSlider;
+
+    void Awake()
+    {
+        if (Instance != null && Instance != this) Destroy(gameObject);
+        else Instance = this;
+    }
     void Start()
     {
-        volumeSlider=GameObject.Find("Volume Slider").GetComponent<Slider>();
-        music=GameObject.Find("Main Camera").GetComponent<AudioSource>();
-        player=Instantiate(player,player.transform.position,player.transform.rotation);
+        soundEffects = GetComponent<AudioSource>();
+        // soundEffectsVolumeSlider.RegisterCallback<onexi>(PlayTestEffect);
+        // soundEffectsVolumeSlider.OnPointerExit.AddListener(delegate {PlayTestEffect();});
+        // musicVolumeSlider=GameObject.Find("Volume Slider").GetComponent<Slider>();
+        // music=GameObject.Find("Main Camera").GetComponent<AudioSource>();
+        // player=Instantiate(player,player.transform.position,player.transform.rotation);
     }
 
     public void StartGame(){
@@ -50,13 +64,12 @@ public class GameManager : MonoBehaviour
         enemySpeed=4.0f;
         treeSpeed=0.5f;
         lives=3;
-        score=0;
         livesText.text=$"Lives:{lives}";
-        UpdateScore(0);
-        Invoke("SpawnEnemy",enemySpawnRate);
-        Invoke("SpawnTree",treeSpawnRate);
-        InvokeRepeating("IncreaseSpeed",20,30);
-        InvokeRepeating("IncreaseSpawnRate",30,30);
+        scoreText.text=$"Score:{score}";
+        Invoke(nameof(SpawnEnemy), enemySpawnRate);
+        Invoke(nameof(SpawnTree), treeSpawnRate);
+        InvokeRepeating(nameof(IncreaseSpeed), 20,30);
+        InvokeRepeating(nameof(IncreaseSpawnRate), 30,30);
     }
 
     // Update is called once per frame
@@ -74,8 +87,23 @@ public class GameManager : MonoBehaviour
 
     }
 
-    public void AdjustVolume(){
-        music.volume=volumeSlider.value;
+    public void AdjustMusicVolume(){
+        music.volume=musicVolumeSlider.value;
+    }
+
+    public void AdjustSoundEffectsVolume()
+    {
+        soundEffects.volume = soundEffectsVolumeSlider.value;
+    }
+
+    public void PlayTestEffect()
+    { 
+        AudioSource.PlayClipAtPoint(crash, transform.position,soundEffects.volume);
+    }
+
+    public float GetSoundEffectsVolume()
+    {
+        return soundEffectsVolumeSlider.value;
     }
 
     Direction ChooseDirection(){
@@ -104,30 +132,12 @@ public class GameManager : MonoBehaviour
             Quaternion rotation=Quaternion.Euler(0,-90,0);
             GameObject drone = Instantiate(enemies[randNum],GenerateSpawn(enemySelectedDirection,enemies[randNum]),rotation);
         }
-        Invoke("SpawnEnemy",enemySpawnRate);
+        Invoke(nameof(SpawnEnemy), enemySpawnRate);
     }
 
-    // void SpawnEnemy(){
-    //     enemySelectedDirection=ChooseDirection();
-    //     randNum=Random.Range(0,3);
-    //     if (enemySelectedDirection==Direction.Top){
-    //         Quaternion rotation=Quaternion.Euler(0,-180,0);
-    //         GameObject drone = Instantiate(enemies[randNum],GenerateSpawn(enemySelectedDirection,enemies[randNum]),enemies[randNum].transform.rotation);
-    //         drone.transform.Rotate(0f,-180f,0);
-    //     } else if (enemySelectedDirection==Direction.Left){
-    //         GameObject drone = Instantiate(enemies[randNum],GenerateSpawn(enemySelectedDirection,enemies[randNum]),enemies[randNum].transform.rotation);
-    //         drone.transform.Rotate(0f,90f,0);
-    //     } else{
-    //         GameObject drone = Instantiate(enemies[randNum],GenerateSpawn(enemySelectedDirection,enemies[randNum]),enemies[randNum].transform.rotation);
-    //         drone.transform.Rotate(0f,-90f,0);
-    //     }
-    //     Invoke("SpawnEnemy",enemySpawnRate);
-    // }
-
     void SpawnTree(){
-        // treeSelectedDirection=Direction.Top;
         Instantiate(tree,GenerateSpawn(Direction.Top,tree),tree.transform.rotation);
-        Invoke("SpawnTree",treeSpawnRate);
+        Invoke(nameof(SpawnTree), treeSpawnRate);
     }
 
     Vector3 GenerateSpawn(Direction selectedDirection,GameObject spawnedObject){
@@ -162,20 +172,20 @@ public class GameManager : MonoBehaviour
 
     public void DirectionalMovement(GameObject movingObject,float speed,Direction direction){
         if(movingObject.CompareTag("Tree") || movingObject.CompareTag("Enemy")){
-            movingObject.transform.Translate(Vector3.forward*speed*Time.deltaTime);
+            movingObject.transform.Translate(speed * Time.deltaTime * Vector3.forward);
         } else{
             if (direction==Direction.Top){
-                movingObject.transform.Translate(Vector3.down*speed*Time.deltaTime);
+                movingObject.transform.Translate(speed * Time.deltaTime * Vector3.down);
             } else if(direction==Direction.Left){
-                movingObject.transform.Translate(Vector3.right*speed*Time.deltaTime);
+                movingObject.transform.Translate(speed * Time.deltaTime * Vector3.right);
             } else if(direction==Direction.Right){
-                movingObject.transform.Translate(Vector3.left*speed*Time.deltaTime);
+                movingObject.transform.Translate(speed * Time.deltaTime * Vector3.left);
             }
         }
-        if (movingObject.transform.position.x>GameManager.xBound+7 || movingObject.transform.position.x<-(GameManager.xBound+7) || movingObject.transform.position.z<-(GameManager.zBound+7)){
+        if (movingObject.transform.position.x> xBound+7 || movingObject.transform.position.x<-(xBound+7) || movingObject.transform.position.z<-(zBound+7)){
             if(movingObject.CompareTag("Tree")){
                 if(!movingObject.GetComponent<Tree>().rebuilt){
-                    this.UpdateLives();
+                    UpdateLives();
                 }
                 Destroy(movingObject.GetComponent<Tree>().treeText);
                 Destroy(movingObject);
@@ -191,15 +201,6 @@ public class GameManager : MonoBehaviour
         powerUpSelectedDirection=ChooseDirection();
         randNum=Random.Range(0,3);
         Instantiate(powerUps[randNum],GenerateSpawn(powerUpSelectedDirection,powerUps[randNum]),powerUps[randNum].transform.rotation);
-        // Quaternion rotation;
-        // if (powerUpSelectedDirection==Direction.Top){
-        //     rotation=Quaternion.Euler(0,-180,0);
-        // } else if(powerUpSelectedDirection==Direction.Left){
-        //     rotation=Quaternion.Euler(0,90,0);
-        // } else{
-        //     rotation=Quaternion.Euler(0,-90,0);
-        // }
-        // Instantiate(powerUps[randNum],GenerateSpawn(powerUpSelectedDirection,powerUps[randNum]),rotation);
     }
 
     void IncreaseSpawnRate(){
@@ -212,15 +213,6 @@ public class GameManager : MonoBehaviour
         powerUpSelectedDirection=ChooseDirection();
         randNum=Random.Range(0,3);
         Instantiate(powerUps[randNum],GenerateSpawn(powerUpSelectedDirection,powerUps[randNum]),powerUps[randNum].transform.rotation);
-        // Quaternion rotation;
-        // if (powerUpSelectedDirection==Direction.Top){
-        //     rotation=Quaternion.Euler(0,-180,0);
-        // } else if(powerUpSelectedDirection==Direction.Left){
-        //     rotation=Quaternion.Euler(0,90,0);
-        // } else{
-        //     rotation=Quaternion.Euler(0,-90,0);
-        // }
-        // Instantiate(powerUps[randNum],GenerateSpawn(powerUpSelectedDirection,powerUps[randNum]),rotation);
     }
 
     public void UpdateScore(int numToAdd){
@@ -238,9 +230,7 @@ public class GameManager : MonoBehaviour
 
     public void GameOver(){
         isGameActive=false;
-        // GameObject.Find("Power Up Ring").SetActive(false);
         player.GetComponent<PlayerController>().powerUpRing.SetActive(false);
-        // Destroy(GameObject.Find("Player"));
         Destroy(player);
         gameOverText.SetActive(true);
         CancelInvoke();
