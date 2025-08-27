@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -8,40 +7,42 @@ public class PlayerController : MonoBehaviour
     private float horizontalInput;
     private float verticalInput;
     private const float zBound=7f;
-    private float xBound=13;
+    private const float xBound=13;
     private bool canShoot=true;
-    private bool armor=false;
-    private bool hasPowerUp=false;
-    private GameManager gameManager;
+    private bool armor;
+    private bool hasPowerUp;
+    public bool superSticks;
+    private static readonly WaitForSeconds _waitForSeconds0_1 = new(0.1f);
+    private static readonly WaitForSeconds _waitForSeconds1_5 = new(1.5f);
+    private static readonly WaitForSeconds _waitForSeconds10 = new(10);
     public AudioSource audioSource;
-    public bool superSticks=false;
     public AudioClip crash;
     public GameObject stick;
     public GameObject powerUpRing;
     public ParticleSystem explosion;
-    // Start is called before the first frame update
+
     void Start()
     {
-        gameManager=GameObject.Find("Game Manager").GetComponent<GameManager>();
         audioSource=GetComponent<AudioSource>();
-        powerUpRing=Instantiate(powerUpRing,powerUpRing.transform.position,powerUpRing.transform.rotation);
+        audioSource.volume = GameManager.Instance.GetSoundEffectsVolume();
+        print(GameManager.Instance.GetSoundEffectsVolume());
+        powerUpRing = Instantiate(powerUpRing,powerUpRing.transform.position,powerUpRing.transform.rotation);
         powerUpRing.SetActive(false);
-
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (gameManager.isGameActive){
+        if (GameManager.Instance.isGameActive){
             horizontalInput=Input.GetAxis("Horizontal");
             verticalInput=Input.GetAxis("Vertical");
-            transform.Translate(Vector3.forward*verticalInput*speed*Time.deltaTime);
-            transform.Translate(Vector3.right*horizontalInput*speed*Time.deltaTime);
+            transform.Translate(speed * Time.deltaTime * verticalInput * Vector3.forward);
+            transform.Translate(horizontalInput * speed * Time.deltaTime * Vector3.right);
             PlayerMovementConstraints();
             if (Input.GetKeyDown(KeyCode.Space) && canShoot){
                 Instantiate(stick,transform.position + new Vector3(0,0,1),stick.transform.rotation);
                 canShoot=false;
-                StartCoroutine(waitToShoot());
+                StartCoroutine(WaitToShoot());
             }
             if (powerUpRing.activeSelf){
                 powerUpRing.transform.position=transform.position;
@@ -50,8 +51,9 @@ public class PlayerController : MonoBehaviour
     }
 
     void PlayerMovementConstraints(){
-        if(transform.position.z>zBound){
-            transform.position=new Vector3(transform.position.x,transform.position.y,zBound);
+        if (transform.position.z > zBound)
+        {
+            transform.position = new Vector3(transform.position.x, transform.position.y, zBound);
         }
         if (transform.position.z<-zBound){
             transform.position=new Vector3(transform.position.x,transform.position.y,-zBound);
@@ -73,14 +75,14 @@ public class PlayerController : MonoBehaviour
             StartCoroutine(WaitForExplosion(explosionMod));
             audioSource.PlayOneShot(crash);
             if (!armor){
-                gameManager.UpdateLives();
+                GameManager.Instance.UpdateLives();
             }
             Debug.Log("Player collision");
             Destroy(other.gameObject);
         }
         if (other.gameObject.CompareTag("Heal")){
-            gameManager.lives=3;
-            gameManager.livesText.text=$"Lives:{gameManager.lives}";
+            GameManager.Instance.lives=3;
+            GameManager.Instance.livesText.text=$"Lives:{GameManager.Instance.lives}";
             Destroy(other.gameObject);
         }
         if (other.gameObject.CompareTag("SuperSticks") && !hasPowerUp){
@@ -89,7 +91,7 @@ public class PlayerController : MonoBehaviour
             superSticks=true;
             powerUpRing.SetActive(true);
             Destroy(other.gameObject);
-            StartCoroutine(powerUpCountdown());
+            StartCoroutine(PowerUpCountdown());
         }
         if (other.gameObject.CompareTag("Armor") && !hasPowerUp){
             Debug.Log("Armor");
@@ -97,24 +99,24 @@ public class PlayerController : MonoBehaviour
             powerUpRing.SetActive(true);
             armor=true;
             Destroy(other.gameObject);
-            StartCoroutine(powerUpCountdown());
+            StartCoroutine(PowerUpCountdown());
         }
     }
 
 
 
-    IEnumerator waitToShoot(){
-        yield return new WaitForSeconds(0.1f);
+    IEnumerator WaitToShoot(){
+        yield return _waitForSeconds0_1;
         canShoot=true;
     }
 
     public IEnumerator WaitForExplosion(ParticleSystem explosionMod){
-        yield return new WaitForSeconds(1.5f);
+        yield return _waitForSeconds1_5;
         Destroy(explosionMod.gameObject); 
     }
 
-    IEnumerator powerUpCountdown(){
-        yield return new WaitForSeconds(10);
+    IEnumerator PowerUpCountdown(){
+        yield return _waitForSeconds10;
         hasPowerUp=false;
         superSticks=false;
         armor=false;
