@@ -40,7 +40,7 @@ public class PlayerController : MonoBehaviour
             transform.Translate(horizontalInput * speed * Time.deltaTime * Vector3.right);
             PlayerMovementConstraints();
             if (Input.GetKeyDown(KeyCode.Space) && canShoot){
-                Instantiate(stick,transform.position + new Vector3(0,0,1),stick.transform.rotation);
+                Instantiate(stick,transform.position + new Vector3(0,0.3f,1),stick.transform.rotation);
                 canShoot=false;
                 StartCoroutine(WaitToShoot());
             }
@@ -73,12 +73,10 @@ public class PlayerController : MonoBehaviour
             ParticleSystem explosionMod=Instantiate(explosion,transform.position,explosion.transform.rotation);
             explosionMod.Play();
             StartCoroutine(WaitForExplosion(explosionMod));
-            audioSource.PlayOneShot(crash);
             if (!armor){
                 GameManager.Instance.UpdateLives();
             }
             Debug.Log("Player collision");
-            Destroy(other.gameObject);
         }
         if (other.gameObject.CompareTag("Heal")){
             GameManager.Instance.lives=3;

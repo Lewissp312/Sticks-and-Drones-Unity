@@ -951,6 +951,19 @@ Transform:
   - {fileID: 585641811}
   m_Father: {fileID: 766235986}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &433668009 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8461094507202921381, guid: 14f4d004bba7c4b9d8083e78022cd10f, type: 3}
+  m_PrefabInstance: {fileID: 1109843322}
+  m_PrefabAsset: {fileID: 0}
+--- !u!81 &433668017
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 433668009}
+  m_Enabled: 0
 --- !u!1 &501497982
 GameObject:
   m_ObjectHideFlags: 0
@@ -1494,7 +1507,7 @@ Light:
   m_InnerSpotAngle: 21.802082
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 2
+    m_Type: 0
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
@@ -1727,8 +1740,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 920723637}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -7.1099243, y: 15.99, z: -4.1548615}
+  m_LocalRotation: {x: -0.7056232, y: -0.0027651559, z: 0.0027539767, w: -0.70857656}
+  m_LocalPosition: {x: -0.25093222, y: 31.020636, z: 0.40341833}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1993,7 +2006,7 @@ Transform:
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -0.2, y: 30.54, z: 0.3}
+  m_LocalPosition: {x: -0.2, y: 30, z: 0.3}
   m_LocalScale: {x: 0, y: 0, z: 7.93095}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2110,7 +2123,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8461094507202921380, guid: 14f4d004bba7c4b9d8083e78022cd10f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.5
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 8461094507202921380, guid: 14f4d004bba7c4b9d8083e78022cd10f, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2151,7 +2164,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8461094507202921381, guid: 14f4d004bba7c4b9d8083e78022cd10f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 433668017}
   m_SourcePrefab: {fileID: 100100000, guid: 14f4d004bba7c4b9d8083e78022cd10f, type: 3}
 --- !u!1 &1271757868
 GameObject:
@@ -2967,6 +2983,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1480313091}
   - component: {fileID: 1480313092}
+  - component: {fileID: 1480313093}
   m_Layer: 5
   m_Name: Volume Slider
   m_TagString: Untagged
@@ -3059,6 +3076,35 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &1480313093
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1480313090}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0b148fe25e99eb48b9724523833bab1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Delegates:
+  - eventID: 14
+    callback:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 920723638}
+          m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+          m_MethodName: PlayTestEffect
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
 --- !u!1 &1495435624
 GameObject:
   m_ObjectHideFlags: 0
