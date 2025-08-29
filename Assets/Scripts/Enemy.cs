@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
@@ -33,6 +31,7 @@ public class Enemy : MonoBehaviour
         {
             if (GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>().superSticks)
             {
+                AudioSource.PlayClipAtPoint(crash,Camera.main.transform.position,GameManager.Instance.GetSoundEffectsVolume());
                 Destroy(gameObject);
             }
             else
@@ -50,7 +49,8 @@ public class Enemy : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Player"))
         {
-            AudioSource.PlayClipAtPoint(crash, transform.position, GameManager.Instance.GetSoundEffectsVolume());
+            // Vector3 posToPlaySound = new Vector3(transform.position.x, 30, transform.position.z); 
+            AudioSource.PlayClipAtPoint(crash, Camera.main.transform.position,GameManager.Instance.GetSoundEffectsVolume());
             Destroy(gameObject);
             // print("Collided with player");
         }

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
+using Unity.VisualScripting;
 // using UnityEngine.UIElements;
 
 public class GameManager : MonoBehaviour
@@ -98,7 +99,7 @@ public class GameManager : MonoBehaviour
 
     public void PlayTestEffect()
     { 
-        AudioSource.PlayClipAtPoint(crash, transform.position,soundEffects.volume);
+        AudioSource.PlayClipAtPoint(crash, transform.position,soundEffectsVolumeSlider.value);
     }
 
     public float GetSoundEffectsVolume()
@@ -143,30 +144,26 @@ public class GameManager : MonoBehaviour
     Vector3 GenerateSpawn(Direction selectedDirection,GameObject spawnedObject){
         if (selectedDirection==Direction.Left){
             randZ=Random.Range(-zBound,zBound);
-            return new Vector3(-17.1f,yValue,randZ);
+            return new Vector3(-17.1f,spawnedObject.transform.position.y,randZ);
             //x value will always be -17.1
             //top z value will be 5
             //y value will be 3
 
         } else if(selectedDirection==Direction.Top){
             randX = Random.Range(-xBound,xBound);
-            if(spawnedObject.CompareTag("Tree")){
-                return new Vector3(randX,0.56f,10);
-            } else{
-                return new Vector3(randX,yValue,10);
-            }
+            return new Vector3(randX,spawnedObject.transform.position.y,10);
             //left x value will be -12
             //z value is 8
             //y value 3
 
         } else if(selectedDirection==Direction.Right){
             randZ=Random.Range(-zBound,zBound);
-            return new Vector3(17.1f,yValue,randZ);
+            return new Vector3(17.1f,spawnedObject.transform.position.y,randZ);
             //x value 17.1
             //top z value is 5
             //y value 3
         } else{
-            return new Vector3(17.1f,yValue,5);
+            return new Vector3(17.1f,spawnedObject.transform.position.y,5);
         }
     }
 

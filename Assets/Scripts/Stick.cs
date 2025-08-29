@@ -27,7 +27,6 @@ public class Stick : MonoBehaviour
         if (other.gameObject.CompareTag("Enemy") && playerController.superSticks){
             ParticleSystem explosionMod = Instantiate(playerController.explosion,other.transform.position,playerController.explosion.transform.rotation);
             explosionMod.Play();
-            playerController.audioSource.PlayOneShot(playerController.crash);
             StartCoroutine(playerController.WaitForExplosion(explosionMod));
         }
     }
