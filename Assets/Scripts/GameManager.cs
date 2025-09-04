@@ -39,6 +39,7 @@ public class GameManager : MonoBehaviour
     private const float xBound = 12;
     private AudioSource soundEffects;
     [SerializeField] private AudioSource music;
+    [SerializeField] private ParticleSystem explosion;
     [SerializeField] private Slider musicVolumeSlider;
     [SerializeField] private Slider soundEffectsVolumeSlider;
 
@@ -99,7 +100,14 @@ public class GameManager : MonoBehaviour
 
     public void PlayTestEffect()
     { 
-        AudioSource.PlayClipAtPoint(crash, transform.position,soundEffectsVolumeSlider.value);
+        AudioSource.PlayClipAtPoint(crash, Camera.main.transform.position,soundEffectsVolumeSlider.value);
+    }
+
+    public void PlayExplosion(Vector3 positionToPlayEffect)
+    {
+        ParticleSystem explosionTemp = Instantiate(explosion, positionToPlayEffect, Quaternion.identity);
+        explosionTemp.Play();
+        Destroy(explosionTemp, 4);
     }
 
     public float GetSoundEffectsVolume()
@@ -109,29 +117,62 @@ public class GameManager : MonoBehaviour
 
     Direction ChooseDirection(){
         randNum=Random.Range(1,4);
-        if (randNum==1){
-            return Direction.Left;
-        } else if(randNum==2){
-            return Direction.Top;
-        } else if(randNum==3){
-            return Direction.Right;
-        } else{
-            return Direction.Top;
-        }
+        return randNum switch
+        {
+            1 => Direction.Left,
+            2 => Direction.Top,
+            3 => Direction.Right,
+            _ => Direction.Top,
+        };
+        // if (randNum == 1)
+        // {
+        //     return Direction.Left;
+        // }
+        // else if (randNum == 2)
+        // {
+        //     return Direction.Top;
+        // }
+        // else if (randNum == 3)
+        // {
+        //     return Direction.Right;
+        // }
+        // else
+        // {
+        //     return Direction.Top;
+        // }
     }
 
-    void SpawnEnemy(){
-        enemySelectedDirection=ChooseDirection();
-        randNum=Random.Range(0,3);
-        if (enemySelectedDirection==Direction.Top){
-            Quaternion rotation=Quaternion.Euler(0,-180,0);
-            GameObject drone = Instantiate(enemies[randNum],GenerateSpawn(enemySelectedDirection,enemies[randNum]),rotation);
-        } else if (enemySelectedDirection==Direction.Left){
-            Quaternion rotation=Quaternion.Euler(0,90,0);
-            GameObject drone = Instantiate(enemies[randNum],GenerateSpawn(enemySelectedDirection,enemies[randNum]),rotation);
-        } else{
-            Quaternion rotation=Quaternion.Euler(0,-90,0);
-            GameObject drone = Instantiate(enemies[randNum],GenerateSpawn(enemySelectedDirection,enemies[randNum]),rotation);
+    void SpawnEnemy()
+    {
+        enemySelectedDirection = ChooseDirection();
+        randNum = Random.Range(0, 3);
+        switch (enemySelectedDirection)
+        {
+            case Direction.Left:
+                Instantiate(enemies[randNum], GenerateSpawn(enemySelectedDirection, enemies[randNum]), Quaternion.Euler(0, 90, 0));
+                break;
+            case Direction.Top:
+                Instantiate(enemies[randNum], GenerateSpawn(enemySelectedDirection, enemies[randNum]), Quaternion.Euler(0, -180, 0));
+                break;
+            default:
+                Instantiate(enemies[randNum], GenerateSpawn(enemySelectedDirection, enemies[randNum]), Quaternion.Euler(0, -90, 0));
+                break;
+                // if (enemySelectedDirection == Direction.Top)
+                // {
+                //     Quaternion rotation = Quaternion.Euler(0, -180, 0);
+                //     GameObject drone = Instantiate(enemies[randNum], GenerateSpawn(enemySelectedDirection, enemies[randNum]), rotation);
+                // }
+                // else if (enemySelectedDirection == Direction.Left)
+                // {
+                //     Quaternion rotation = Quaternion.Euler(0, 90, 0);
+                //     GameObject drone = Instantiate(enemies[randNum], GenerateSpawn(enemySelectedDirection, enemies[randNum]), rotation);
+                // }
+                // else
+                // {
+                //     Quaternion rotation = Quaternion.Euler(0, -90, 0);
+                //     GameObject drone = Instantiate(enemies[randNum], GenerateSpawn(enemySelectedDirection, enemies[randNum]), rotation);
+                // }
+                // Invoke(nameof(SpawnEnemy), enemySpawnRate);
         }
         Invoke(nameof(SpawnEnemy), enemySpawnRate);
     }
@@ -142,29 +183,50 @@ public class GameManager : MonoBehaviour
     }
 
     Vector3 GenerateSpawn(Direction selectedDirection,GameObject spawnedObject){
-        if (selectedDirection==Direction.Left){
-            randZ=Random.Range(-zBound,zBound);
-            return new Vector3(-17.1f,spawnedObject.transform.position.y,randZ);
-            //x value will always be -17.1
-            //top z value will be 5
-            //y value will be 3
-
-        } else if(selectedDirection==Direction.Top){
-            randX = Random.Range(-xBound,xBound);
-            return new Vector3(randX,spawnedObject.transform.position.y,10);
-            //left x value will be -12
-            //z value is 8
-            //y value 3
-
-        } else if(selectedDirection==Direction.Right){
-            randZ=Random.Range(-zBound,zBound);
-            return new Vector3(17.1f,spawnedObject.transform.position.y,randZ);
-            //x value 17.1
-            //top z value is 5
-            //y value 3
-        } else{
-            return new Vector3(17.1f,spawnedObject.transform.position.y,5);
+        switch (selectedDirection)
+        {
+            case Direction.Left:
+                randZ = Random.Range(-zBound, zBound);
+                return new Vector3(-17.1f, spawnedObject.transform.position.y, randZ);
+            case Direction.Top:
+                randX = Random.Range(-xBound, xBound);
+                return new Vector3(randX, spawnedObject.transform.position.y, 10);
+            case Direction.Right:
+                randZ = Random.Range(-zBound, zBound);
+                return new Vector3(17.1f, spawnedObject.transform.position.y, randZ);
+            default:
+                return new Vector3(17.1f, spawnedObject.transform.position.y, 3);
         }
+        // if (selectedDirection == Direction.Left)
+        // {
+        //     randZ = Random.Range(-zBound, zBound);
+        //     return new Vector3(-17.1f, spawnedObject.transform.position.y, randZ);
+        //     //x value will always be -17.1
+        //     //top z value will be 5
+        //     //y value will be 3
+
+        // }
+        // else if (selectedDirection == Direction.Top)
+        // {
+        //     randX = Random.Range(-xBound, xBound);
+        //     return new Vector3(randX, spawnedObject.transform.position.y, 10);
+        //     //left x value will be -12
+        //     //z value is 8
+        //     //y value 3
+
+        // }
+        // else if (selectedDirection == Direction.Right)
+        // {
+        //     randZ = Random.Range(-zBound, zBound);
+        //     return new Vector3(17.1f, spawnedObject.transform.position.y, randZ);
+        //     //x value 17.1
+        //     //top z value is 5
+        //     //y value 3
+        // }
+        // else
+        // {
+        //     return new Vector3(17.1f, spawnedObject.transform.position.y, 5);
+        // }
     }
 
     public void DirectionalMovement(GameObject movingObject,float speed,Direction direction){
@@ -182,7 +244,7 @@ public class GameManager : MonoBehaviour
         if (movingObject.transform.position.x> xBound+7 || movingObject.transform.position.x<-(xBound+7) || movingObject.transform.position.z<-(zBound+7)){
             if(movingObject.CompareTag("Tree")){
                 if(!movingObject.GetComponent<Tree>().rebuilt){
-                    UpdateLives();
+                    UpdateLives(-1);
                 }
                 Destroy(movingObject.GetComponent<Tree>().treeText);
                 Destroy(movingObject);
@@ -217,8 +279,8 @@ public class GameManager : MonoBehaviour
         scoreText.text=$"Score:{score}";
     }
 
-    public void UpdateLives(){
-        lives--;
+    public void UpdateLives(int numToAdd){
+        lives+=numToAdd;
         livesText.text=$"Lives:{lives}";
         if (lives==0){
             GameOver();

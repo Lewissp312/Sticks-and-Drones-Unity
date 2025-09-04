@@ -5,16 +5,16 @@ public class Enemy : MonoBehaviour
 
     // public float xBound=21.0f; //18
     // public float zBound=50.0f; //11
-    private GameManager gameManager;
     private GameManager.Direction direction;
-    private AudioSource audioSource;
-    [SerializeField] AudioClip crash;
+    private PlayerController playerController;
+    [SerializeField] private AudioClip crash;
+    [SerializeField] private ParticleSystem explosion;
     // private Animator animator;
     private float speed;
     // Start is called before the first frame update
     void Start()
     {
-        audioSource = GetComponent<AudioSource>();
+        playerController = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
         direction = GameManager.Instance.enemySelectedDirection;
         speed = GameManager.Instance.enemySpeed;
     }
@@ -25,34 +25,17 @@ public class Enemy : MonoBehaviour
         GameManager.Instance.DirectionalMovement(gameObject, speed, direction);
     }
 
-    void OnCollisionEnter(Collision other)
-    {
-        if (other.gameObject.CompareTag("Stick"))
-        {
-            if (GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>().superSticks)
-            {
-                AudioSource.PlayClipAtPoint(crash,Camera.main.transform.position,GameManager.Instance.GetSoundEffectsVolume());
-                Destroy(gameObject);
-            }
-            else
-            {
-                Destroy(other.gameObject);
-            }
-        }
-        else if (other.gameObject.CompareTag("Player"))
-        {
-            print("Collided with player");
-        }
-    }
-    
     void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Player"))
+        if (other.gameObject.CompareTag("Player") || (other.gameObject.CompareTag("Stick") && playerController.superSticks))
         {
-            // Vector3 posToPlaySound = new Vector3(transform.position.x, 30, transform.position.z); 
-            AudioSource.PlayClipAtPoint(crash, Camera.main.transform.position,GameManager.Instance.GetSoundEffectsVolume());
+            AudioSource.PlayClipAtPoint(crash, Camera.main.transform.position, GameManager.Instance.GetSoundEffectsVolume());
+            Instantiate(explosion, transform.position, Quaternion.identity);
             Destroy(gameObject);
-            // print("Collided with player");
+        }
+        else if (other.gameObject.CompareTag("Stick"))
+        {
+            Destroy(other.gameObject);
         }
     }
 }
