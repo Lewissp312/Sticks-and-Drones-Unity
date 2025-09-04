@@ -9,7 +9,7 @@ public class PlayerController : MonoBehaviour
     private const float zBound=7f;
     private const float xBound=13;
     private bool canShoot=true;
-    private bool armor;
+    private bool hasArmour;
     private bool hasPowerUp;
     public bool superSticks;
     private static readonly WaitForSeconds _waitForSeconds0_1 = new(0.1f);
@@ -67,37 +67,32 @@ public class PlayerController : MonoBehaviour
     }
 
     void OnTriggerEnter(Collider other){
-        if (other.gameObject.CompareTag("Enemy")){
-            // explosion.transform.position=transform.position;
-            // explosion.Play();
-            ParticleSystem explosionMod=Instantiate(explosion,transform.position,explosion.transform.rotation);
-            explosionMod.Play();
-            StartCoroutine(WaitForExplosion(explosionMod));
-            if (!armor){
-                GameManager.Instance.UpdateLives();
+        if (other.gameObject.CompareTag("Enemy") && !hasArmour)
+        {
+            GameManager.Instance.UpdateLives(-1);
+        }
+        else if (other.gameObject.CompareTag("Heal"))
+        {
+            GameManager.Instance.UpdateLives(3 - GameManager.Instance.lives);
+            Destroy(other.gameObject);
+        }
+        else if (!hasPowerUp)
+        {
+            if (other.gameObject.CompareTag("SuperSticks") || other.gameObject.CompareTag("Armor"))
+            {
+                hasPowerUp = true;
+                powerUpRing.SetActive(true);
+                Destroy(other.gameObject);
+                StartCoroutine(PowerUpCountdown());
+                if (other.gameObject.CompareTag("SuperSticks"))
+                {
+                    superSticks = true;
+                }
+                else
+                {
+                    hasArmour = true;
+                }
             }
-            Debug.Log("Player collision");
-        }
-        if (other.gameObject.CompareTag("Heal")){
-            GameManager.Instance.lives=3;
-            GameManager.Instance.livesText.text=$"Lives:{GameManager.Instance.lives}";
-            Destroy(other.gameObject);
-        }
-        if (other.gameObject.CompareTag("SuperSticks") && !hasPowerUp){
-            Debug.Log("Super");
-            hasPowerUp=true;
-            superSticks=true;
-            powerUpRing.SetActive(true);
-            Destroy(other.gameObject);
-            StartCoroutine(PowerUpCountdown());
-        }
-        if (other.gameObject.CompareTag("Armor") && !hasPowerUp){
-            Debug.Log("Armor");
-            hasPowerUp=true;
-            powerUpRing.SetActive(true);
-            armor=true;
-            Destroy(other.gameObject);
-            StartCoroutine(PowerUpCountdown());
         }
     }
 
@@ -117,7 +112,7 @@ public class PlayerController : MonoBehaviour
         yield return _waitForSeconds10;
         hasPowerUp=false;
         superSticks=false;
-        armor=false;
+        hasArmour=false;
         powerUpRing.SetActive(false);
     }
 }

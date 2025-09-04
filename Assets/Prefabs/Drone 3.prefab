@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 8306919601765442518}
   - component: {fileID: -5579522046425752148}
   - component: {fileID: -1385055967372588027}
+  - component: {fileID: -5478819909160343847}
   m_Layer: 0
   m_Name: Drone 3
   m_TagString: Enemy
@@ -148,12 +149,12 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.3260146, y: 0.0938128, z: 0.4228718}
-  m_Center: {x: 0.0011705816, y: 0.69, z: 0.0030495883}
+  m_Size: {x: 0.3260146, y: 0.15988491, z: 0.37679005}
+  m_Center: {x: 0.0011705876, y: 0.69, z: -0.0015015602}
 --- !u!114 &-5579522046425752148
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -167,6 +168,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   crash: {fileID: 8300000, guid: 4bcde6de2166e41e284ec46d8a01fb90, type: 3}
+  explosion: {fileID: 9125212449759046732, guid: cb7cd9b0c56a24d49a40784bd3203ae6, type: 3}
 --- !u!95 &-1385055967372588027
 Animator:
   serializedVersion: 7
@@ -189,6 +191,33 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!54 &-5478819909160343847
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4321183893736837132}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 1
 --- !u!1001 &4826769706668225594
 PrefabInstance:
   m_ObjectHideFlags: 0

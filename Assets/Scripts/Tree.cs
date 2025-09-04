@@ -38,12 +38,14 @@ public class Tree : MonoBehaviour
         }
     }
 
-    void OnCollisionEnter(Collision other){
+    void OnTriggerEnter(Collider other)
+    {
         if (GameManager.Instance.isGameActive){
             if (other.gameObject.CompareTag("Stick")){
                 Destroy(other.gameObject);
-                if (other.gameObject.CompareTag("Stick") && !rebuilt){
+                if (!rebuilt){
                     sticksNeeded--;
+                    print($"I have been hit by a stick, I now need {sticksNeeded} more sticks");
                     treeText.GetComponent<TextMesh>().text=$"{sticksNeeded}";
                     if (sticksNeeded==0 ||  playerController.superSticks){
                         AudioSource.PlayClipAtPoint(completedSound, Camera.main.transform.position,GameManager.Instance.GetSoundEffectsVolume());
