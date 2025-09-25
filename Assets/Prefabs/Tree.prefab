@@ -102,9 +102,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   treeText: {fileID: 5517507162581228185, guid: 2991e5d4f964d40d1a40d23b3c8c4c4a, type: 3}
-  completedSound: {fileID: 8300000, guid: f928159802e324af2b95417fa6ce3fdf, type: 3}
-  rebuilt: 0
-  crash: {fileID: 0}
+  completedSound: {fileID: 8300000, guid: 94131806e5a30454a89fcb6679773953, type: 3}
 --- !u!82 &5475776160993462664
 AudioSource:
   m_ObjectHideFlags: 0

@@ -4,19 +4,27 @@ using UnityEngine;
 
 public class PowerUps : MonoBehaviour
 {
-    private GameManager gameManager;
+    private bool isDirectionSet;
+    private float speed;
     private GameManager.Direction direction;
     // Start is called before the first frame update
     void Start()
     {
-        gameManager=GameObject.Find("Game Manager").GetComponent<GameManager>();
-        // enemy=GameObject.FindGameObjectWithTag("Enemy").GetComponent<Enemy>();
-        direction=gameManager.powerUpSelectedDirection;
+        speed = GameManager.Instance.GetEnemySpeed();
     }
 
     // Update is called once per frame
     void Update()
     {
-        gameManager.DirectionalMovement(gameObject,gameManager.enemySpeed,direction);
+        if (isDirectionSet)
+        {
+            GameManager.Instance.DirectionalMovement(gameObject, speed, direction);   
+        }
+    }
+
+    public void SetDirection(GameManager.Direction directionToSet)
+    {
+        direction = directionToSet;
+        isDirectionSet = true;
     }
 }

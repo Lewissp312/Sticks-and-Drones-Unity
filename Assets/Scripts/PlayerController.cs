@@ -3,29 +3,28 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    private const float speed = 10.0f;
-    private float horizontalInput;
-    private float verticalInput;
-    private const float zBound=7f;
-    private const float xBound=13;
     private bool canShoot=true;
     private bool hasArmour;
     private bool hasPowerUp;
-    public bool superSticks;
+    private bool hasSuperSticks;
+    private float horizontalInput;
+    private float verticalInput;
+    private const float speed = 10.0f;
+    private const float zBound = 7f;
+    private const float xBound=13;
+    private AudioSource audioSource;
     private static readonly WaitForSeconds _waitForSeconds0_1 = new(0.1f);
     private static readonly WaitForSeconds _waitForSeconds1_5 = new(1.5f);
     private static readonly WaitForSeconds _waitForSeconds10 = new(10);
-    public AudioSource audioSource;
-    public AudioClip crash;
-    public GameObject stick;
-    public GameObject powerUpRing;
-    public ParticleSystem explosion;
+    [SerializeField] private AudioClip crash;
+    [SerializeField] private GameObject stick;
+    [SerializeField] private GameObject powerUpRing;
+    [SerializeField] private ParticleSystem explosion;
 
     void Start()
     {
         audioSource=GetComponent<AudioSource>();
         audioSource.volume = GameManager.Instance.GetSoundEffectsVolume();
-        print(GameManager.Instance.GetSoundEffectsVolume());
         powerUpRing = Instantiate(powerUpRing,powerUpRing.transform.position,powerUpRing.transform.rotation);
         powerUpRing.SetActive(false);
     }
@@ -33,15 +32,19 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (GameManager.Instance.isGameActive){
+        if (GameManager.Instance.GetIsGameActive()){
             horizontalInput=Input.GetAxis("Horizontal");
             verticalInput=Input.GetAxis("Vertical");
             transform.Translate(speed * Time.deltaTime * verticalInput * Vector3.forward);
             transform.Translate(horizontalInput * speed * Time.deltaTime * Vector3.right);
             PlayerMovementConstraints();
             if (Input.GetKeyDown(KeyCode.Space) && canShoot){
-                Instantiate(stick,transform.position + new Vector3(0,0.3f,1),stick.transform.rotation);
-                canShoot=false;
+                GameObject stickCopy = Instantiate(stick,transform.position + new Vector3(0,0.3f,1),stick.transform.rotation);
+                if (hasSuperSticks)
+                {
+                    stickCopy.GetComponent<Stick>().SetIsSuperStick();
+                }
+                canShoot = false;
                 StartCoroutine(WaitToShoot());
             }
             if (powerUpRing.activeSelf){
@@ -73,7 +76,7 @@ public class PlayerController : MonoBehaviour
         }
         else if (other.gameObject.CompareTag("Heal"))
         {
-            GameManager.Instance.UpdateLives(3 - GameManager.Instance.lives);
+            GameManager.Instance.UpdateLives(3 - GameManager.Instance.GetLives());
             Destroy(other.gameObject);
         }
         else if (!hasPowerUp)
@@ -86,7 +89,7 @@ public class PlayerController : MonoBehaviour
                 StartCoroutine(PowerUpCountdown());
                 if (other.gameObject.CompareTag("SuperSticks"))
                 {
-                    superSticks = true;
+                    hasSuperSticks = true;
                 }
                 else
                 {
@@ -94,6 +97,13 @@ public class PlayerController : MonoBehaviour
                 }
             }
         }
+    }
+
+    public bool GetSuperSticks(){return hasSuperSticks;}
+
+    public GameObject GetPowerUpRing()
+    {
+        return powerUpRing;
     }
 
 
@@ -111,7 +121,7 @@ public class PlayerController : MonoBehaviour
     IEnumerator PowerUpCountdown(){
         yield return _waitForSeconds10;
         hasPowerUp=false;
-        superSticks=false;
+        hasSuperSticks=false;
         hasArmour=false;
         powerUpRing.SetActive(false);
     }
