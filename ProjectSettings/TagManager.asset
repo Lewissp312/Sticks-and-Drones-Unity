@@ -11,6 +11,9 @@ TagManager:
   - Heal
   - Tree
   - Background
+  - SoundEffect
+  - FourWaySticks
+  - TreeDangerWall
   layers:
   - Default
   - TransparentFX

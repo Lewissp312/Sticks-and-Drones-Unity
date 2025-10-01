@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -7,48 +8,55 @@ public class PlayerController : MonoBehaviour
     private bool hasArmour;
     private bool hasPowerUp;
     private bool hasSuperSticks;
+    private bool hasFourWaySticks;
     private float horizontalInput;
     private float verticalInput;
     private const float speed = 10.0f;
     private const float zBound = 7f;
-    private const float xBound=13;
+    private const float xBound=14;
     private AudioSource audioSource;
     private static readonly WaitForSeconds _waitForSeconds0_1 = new(0.1f);
-    private static readonly WaitForSeconds _waitForSeconds1_5 = new(1.5f);
     private static readonly WaitForSeconds _waitForSeconds10 = new(10);
     [SerializeField] private AudioClip crash;
     [SerializeField] private GameObject stick;
-    [SerializeField] private GameObject powerUpRing;
+    [SerializeField] private GameObject armourRing;
+    [SerializeField] private GameObject fourWaySticksRing;
     [SerializeField] private ParticleSystem explosion;
 
     void Start()
     {
-        audioSource=GetComponent<AudioSource>();
+        audioSource = GetComponent<AudioSource>();
         audioSource.volume = GameManager.Instance.GetSoundEffectsVolume();
-        powerUpRing = Instantiate(powerUpRing,powerUpRing.transform.position,powerUpRing.transform.rotation);
-        powerUpRing.SetActive(false);
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (GameManager.Instance.GetIsGameActive()){
-            horizontalInput=Input.GetAxis("Horizontal");
-            verticalInput=Input.GetAxis("Vertical");
+        if (GameManager.Instance.GetIsGameActive())
+        {
+            horizontalInput = Input.GetAxis("Horizontal");
+            verticalInput = Input.GetAxis("Vertical");
             transform.Translate(speed * Time.deltaTime * verticalInput * Vector3.forward);
             transform.Translate(horizontalInput * speed * Time.deltaTime * Vector3.right);
             PlayerMovementConstraints();
-            if (Input.GetKeyDown(KeyCode.Space) && canShoot){
-                GameObject stickCopy = Instantiate(stick,transform.position + new Vector3(0,0.3f,1),stick.transform.rotation);
+            if (Input.GetKeyDown(KeyCode.Space) && canShoot && !GameManager.Instance.GetIsGamePaused())
+            {
+                GameObject stickCopy = Instantiate(stick, transform.position + new Vector3(0, 0.3f, 1), stick.transform.rotation);
                 if (hasSuperSticks)
                 {
                     stickCopy.GetComponent<Stick>().SetIsSuperStick();
                 }
+                else if (hasFourWaySticks)
+                {
+                    //downwards
+                    Instantiate(stick, transform.position + new Vector3(0, 0.3f, -1),Quaternion.identity);
+                    //right
+                    Instantiate(stick, transform.position + new Vector3(1, 0.3f, 0), Quaternion.Euler(0, 90, 0));
+                    //left
+                    Instantiate(stick, transform.position + new Vector3(-1, 0.3f, 0), Quaternion.Euler(0, -90, 0));
+                }
                 canShoot = false;
                 StartCoroutine(WaitToShoot());
-            }
-            if (powerUpRing.activeSelf){
-                powerUpRing.transform.position=transform.position;
             }
         }
     }
@@ -70,41 +78,51 @@ public class PlayerController : MonoBehaviour
     }
 
     void OnTriggerEnter(Collider other){
-        if (other.gameObject.CompareTag("Enemy") && !hasArmour)
+        GameObject otherObject = other.gameObject;
+        if (otherObject.CompareTag("Enemy") && !hasArmour)
         {
-            GameManager.Instance.UpdateLives(-1);
+            GameManager.Instance.UpdateLives(-1, GameManager.CauseOfFailure.DRONE);
         }
-        else if (other.gameObject.CompareTag("Heal"))
+        else if (otherObject.CompareTag("Heal"))
         {
             GameManager.Instance.UpdateLives(3 - GameManager.Instance.GetLives());
-            Destroy(other.gameObject);
+            Destroy(otherObject);
         }
-        else if (!hasPowerUp)
+        else if (otherObject.CompareTag("SuperSticks") || otherObject.CompareTag("Armor") || otherObject.CompareTag("FourWaySticks"))
         {
-            if (other.gameObject.CompareTag("SuperSticks") || other.gameObject.CompareTag("Armor"))
+            if (hasPowerUp)
             {
-                hasPowerUp = true;
-                powerUpRing.SetActive(true);
-                Destroy(other.gameObject);
-                StartCoroutine(PowerUpCountdown());
-                if (other.gameObject.CompareTag("SuperSticks"))
-                {
-                    hasSuperSticks = true;
-                }
-                else
-                {
-                    hasArmour = true;
-                }
+                StopAllCoroutines();
+                canShoot = true;
+                hasSuperSticks = false;
+                hasArmour = false;
+                hasFourWaySticks = false;
+                armourRing.SetActive(false);
+                fourWaySticksRing.SetActive(false);
             }
+            else { hasPowerUp = true; }
+            if (otherObject.CompareTag("SuperSticks"))
+            {
+                hasSuperSticks = true;
+            }
+            else if (otherObject.CompareTag("Armor"))
+            {
+                fourWaySticksRing.SetActive(false);
+                armourRing.SetActive(true);
+                hasArmour = true;
+            }
+            else
+            {
+                armourRing.SetActive(false);
+                fourWaySticksRing.SetActive(true);
+                hasFourWaySticks = true;
+            }
+            Destroy(otherObject);
+            StartCoroutine(PowerUpCountdown());
         }
     }
 
-    public bool GetSuperSticks(){return hasSuperSticks;}
-
-    public GameObject GetPowerUpRing()
-    {
-        return powerUpRing;
-    }
+    public bool GetHasArmour() {return hasArmour;}
 
 
 
@@ -113,16 +131,14 @@ public class PlayerController : MonoBehaviour
         canShoot=true;
     }
 
-    public IEnumerator WaitForExplosion(ParticleSystem explosionMod){
-        yield return _waitForSeconds1_5;
-        Destroy(explosionMod.gameObject); 
-    }
-
-    IEnumerator PowerUpCountdown(){
+    IEnumerator PowerUpCountdown()
+    {
         yield return _waitForSeconds10;
-        hasPowerUp=false;
-        hasSuperSticks=false;
-        hasArmour=false;
-        powerUpRing.SetActive(false);
+        hasPowerUp = false;
+        hasSuperSticks = false;
+        hasArmour = false;
+        hasFourWaySticks = false;
+        armourRing.SetActive(false);
+        fourWaySticksRing.SetActive(false);
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,21 +10,19 @@ public class Tree : MonoBehaviour
     private int sticksNeeded;
     private int originalSticksNeeded;
     private float speed;
-    private PlayerController playerController;
     private AudioSource treeAudio;
-    [SerializeField] private GameObject treeText;
+    private TextMesh treeText;
     [SerializeField] private AudioClip completedSound;
 
     // Start is called before the first frame update
     void Start()
     {
-        playerController = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
         treeAudio = GetComponent<AudioSource>();
         treeAudio.volume = GameManager.Instance.GetSoundEffectsVolume();
         sticksNeeded = Random.Range(1, 6);
         originalSticksNeeded = sticksNeeded;
-        treeText = Instantiate(treeText, transform.position, treeText.transform.rotation);
-        treeText.GetComponent<TextMesh>().text = $"{sticksNeeded}";
+        treeText = transform.GetChild(0).gameObject.GetComponent<TextMesh>();
+        treeText.text = $"{sticksNeeded}";
         speed = GameManager.Instance.GetTreeSpeed();
     }
 
@@ -32,9 +31,9 @@ public class Tree : MonoBehaviour
     {
         if (GameManager.Instance.GetIsGameActive())
         {
-            treeText.transform.position = transform.position;
-            GameManager.Instance.DirectionalMovement(gameObject, speed, GameManager.Direction.Top);
+            transform.Translate(speed * Time.deltaTime * Vector3.forward);
         }
+        GameManager.Instance.MovementRestrictions(gameObject);
     }
 
     void OnTriggerEnter(Collider other)
@@ -53,11 +52,18 @@ public class Tree : MonoBehaviour
                         AudioSource.PlayClipAtPoint(completedSound, Camera.main.transform.position, GameManager.Instance.GetSoundEffectsVolume());
                         GameManager.Instance.UpdateScore(originalSticksNeeded);
                         treeText.GetComponent<TextMesh>().text = "Done!";
+                        // treeText.GetComponent<TextMesh>().color = new Color(173,93,4,255);
+                        treeText.GetComponent<TextMesh>().fontSize = 20;
                         isRebuilt = true;
                     }
-                    else{ treeText.GetComponent<TextMesh>().text = $"{sticksNeeded}";}
+                    else { treeText.GetComponent<TextMesh>().text = $"{sticksNeeded}"; }
+                    Destroy(otherObject);
                 }
-                Destroy(otherObject);
+            }
+            else if (otherObject.CompareTag("TreeDangerWall") && !isRebuilt)
+            {
+                // treeText.GetComponent<TextMesh>().color = Color.red;
+                treeText.GetComponent<TextMesh>().fontSize = 70;
             }
         }
     }
@@ -67,7 +73,7 @@ public class Tree : MonoBehaviour
         return isRebuilt;
     }
 
-    public GameObject GetTreeText()
+    public TextMesh GetTreeText()
     {
         return treeText;
     }
