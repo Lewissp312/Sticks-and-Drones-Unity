@@ -8,17 +8,17 @@ public class Stick : MonoBehaviour
     private bool isSuperStick;
     private readonly float speed = 15.0f;
     private readonly float zBound = 8.0f;
+    private readonly float xBound = 21;
     [SerializeField] private Material orange;
 
     void Start()
     {
-        // playerController=GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
     }
 
     void Update()
     {
-        transform.Translate(speed * Time.deltaTime * Vector3.forward);
-        if (transform.position.z > zBound)
+        transform.Translate(speed * Time.deltaTime * Vector3.back);
+        if (transform.position.z > zBound || transform.position.z < -zBound || transform.position.x < -xBound || transform.position.x > xBound)
         {
             Destroy(gameObject);
         }
