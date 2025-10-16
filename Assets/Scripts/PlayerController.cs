@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Runtime.CompilerServices;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.Pool;
 
 public class PlayerController : MonoBehaviour
 {
@@ -9,15 +11,14 @@ public class PlayerController : MonoBehaviour
     private bool hasPowerUp;
     private bool hasSuperSticks;
     private bool hasFourWaySticks;
-    private float horizontalInput;
-    private float verticalInput;
     private const float speed = 10.0f;
     private const float zBound = 7f;
     private const float xBound=14;
-    private AudioSource audioSource;
+    private IObjectPool<Stick> stickPool;
+    private InputAction _moveAction;
+    private InputAction _shootAction;    
     private static readonly WaitForSeconds _waitForSeconds0_1 = new(0.1f);
     private static readonly WaitForSeconds _waitForSeconds10 = new(10);
-    [SerializeField] private AudioClip crash;
     [SerializeField] private GameObject stick;
     [SerializeField] private GameObject armourRing;
     [SerializeField] private GameObject fourWaySticksRing;
@@ -25,8 +26,12 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        audioSource = GetComponent<AudioSource>();
-        audioSource.volume = GameManager.Instance.GetSoundEffectsVolume();
+        //WASD / arrow keys or left stick on a controller
+        _moveAction = InputSystem.actions.FindAction("Move");
+        //The space bar / left click or west gamepad button / right trigger  (e.g Y, Triangle)
+        _shootAction = InputSystem.actions.FindAction("Shoot");
+        stickPool = ObjectPooler.Instance.GetStickPool();
+
     }
 
     // Update is called once per frame
@@ -34,26 +39,30 @@ public class PlayerController : MonoBehaviour
     {
         if (GameManager.Instance.GetIsGameActive())
         {
-            horizontalInput = Input.GetAxis("Horizontal");
-            verticalInput = Input.GetAxis("Vertical");
-            transform.Translate(speed * Time.deltaTime * verticalInput * Vector3.forward);
-            transform.Translate(horizontalInput * speed * Time.deltaTime * Vector3.right);
+            Vector2 moveValue = _moveAction.ReadValue<Vector2>();
+            moveValue = Vector3.Normalize(moveValue);
+            Vector3 newMoveValue = new(moveValue.x, 0, moveValue.y);
+            transform.Translate(speed * Time.deltaTime * newMoveValue);
             PlayerMovementConstraints();
-            if (Input.GetKeyDown(KeyCode.Space) && canShoot && !GameManager.Instance.GetIsGamePaused())
+            if (_shootAction.WasPressedThisFrame() && canShoot && !GameManager.Instance.GetIsGamePaused())
             {
-                GameObject stickCopy = Instantiate(stick, transform.position + new Vector3(0, 0.3f, 1), stick.transform.rotation);
+                Stick stickCopy = stickPool.Get();
+                stickCopy.transform.position = transform.position + new Vector3(0, 0.3f, 1);
                 if (hasSuperSticks)
                 {
-                    stickCopy.GetComponent<Stick>().SetIsSuperStick();
+                    stickCopy.SetIsSuperStick();
                 }
                 else if (hasFourWaySticks)
                 {
-                    //downwards
-                    Instantiate(stick, transform.position + new Vector3(0, 0.3f, -1),Quaternion.identity);
-                    //right
-                    Instantiate(stick, transform.position + new Vector3(1, 0.3f, 0), Quaternion.Euler(0, 90, 0));
-                    //left
-                    Instantiate(stick, transform.position + new Vector3(-1, 0.3f, 0), Quaternion.Euler(0, -90, 0));
+                    Stick stickCopy2 = stickPool.Get();
+                    //Downwards
+                    stickCopy2.transform.SetPositionAndRotation(transform.position + new Vector3(0, 0.3f, -1), Quaternion.identity);
+                    Stick stickCopy3 = stickPool.Get();
+                    //Right
+                    stickCopy3.transform.SetPositionAndRotation(transform.position + new Vector3(1, 0.3f, 0), Quaternion.Euler(0, 90, 0));
+                    Stick stickCopy4 = stickPool.Get();
+                    //Left
+                    stickCopy4.transform.SetPositionAndRotation(transform.position + new Vector3(-1, 0.3f, 0), Quaternion.Euler(0, -90, 0));
                 }
                 canShoot = false;
                 StartCoroutine(WaitToShoot());

@@ -4,7 +4,7 @@ MonoImporter:
   externalObjects: {}
   serializedVersion: 2
   defaultReferences:
-  - objectToPool: {fileID: 4451941183071688819, guid: 006e392d17557b045b1e173abb80f1e8, type: 3}
+  - stick: {fileID: 6787695309390327440, guid: 006e392d17557b045b1e173abb80f1e8, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
