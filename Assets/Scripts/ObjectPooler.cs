@@ -1,46 +1,83 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.Pool;
+
 
 public class ObjectPooler : MonoBehaviour
 {
-    public static ObjectPooler SharedInstance;
-    public List<GameObject> pooledObjects;
-    public GameObject objectToPool;
-    public int amountToPool;
+    public static ObjectPooler Instance;
+    private readonly System.Random rand = new();    
+    public enum PoolType { STICK, DRONE, SOUND, EFFECT };
+    private IObjectPool<Stick> stickPool;
+    private IObjectPool<Enemy> dronePool;
+    private IObjectPool<Tree> treePool;
+    private IObjectPool<SoundOrEffect> soundOrEffectPool;
+    [SerializeField] private Stick stick;
+    [SerializeField] private Tree tree;
+    [SerializeField] private SoundOrEffect soundOrEffect;
+    [SerializeField] private Enemy[] drones;
+    [SerializeField] private Tree[] trees;
+    [SerializeField] private bool collectionCheck = true;
+    [SerializeField] private int defaultStickCapacity = 40;
+    [SerializeField] private int maxSize = 60;
 
-    void Awake()
+    private void Awake()
     {
-        SharedInstance = this;
+        if (Instance != null && Instance != this) Destroy(gameObject);
+        else Instance = this;
+        stickPool = new ObjectPool<Stick>(CreateStickObject, OnGetStickFromPool, OnReleaseStickToPool, OnDestroyPooledStick, collectionCheck, defaultStickCapacity, maxSize);
+        dronePool = new ObjectPool<Enemy>(CreateDroneObject, OnGetDroneFromPool, OnReleaseDroneToPool, OnDestroyPooledDrone, collectionCheck, defaultStickCapacity, maxSize);
+        treePool = new ObjectPool<Tree>(CreateTreeObject, OnGetTreeFromPool, OnReleaseTreeToPool, OnDestroyPooledTree, collectionCheck, defaultStickCapacity, maxSize);
+        soundOrEffectPool = new ObjectPool<SoundOrEffect>(CreateSoundOrEffectObject, OnGetSoundOrEffectFromPool, OnReleaseSoundOrEffectToPool, OnDestroyPooledSoundOrEffect, collectionCheck, defaultStickCapacity, maxSize);
     }
 
-    // Start is called before the first frame update
     void Start()
     {
-        // Loop through list of pooled objects,deactivating them and adding them to the list 
-        pooledObjects = new List<GameObject>();
-        for (int i = 0; i < amountToPool; i++)
-        {
-            GameObject obj = (GameObject)Instantiate(objectToPool);
-            obj.SetActive(false);
-            pooledObjects.Add(obj);
-            obj.transform.SetParent(this.transform); // set as children of Spawn Manager
-        }
     }
 
-    public GameObject GetPooledObject()
+    private Stick CreateStickObject()
     {
-        // For as many objects as are in the pooledObjects list
-        for (int i = 0; i < pooledObjects.Count; i++)
-        {
-            // if the pooled objects is NOT active, return that object 
-            if (!pooledObjects[i].activeInHierarchy)
-            {
-                return pooledObjects[i];
-            }
-        }
-        // otherwise, return null   
-        return null;
+        Stick stickCopy = Instantiate(stick);
+        stickCopy.SetStickPool(stickPool);
+        return stickCopy;
     }
+    private Enemy CreateDroneObject()
+    {
+        Enemy droneCopy = Instantiate(drones[rand.Next(0, 3)]);
+        droneCopy.SetDronePool(dronePool);
+        return droneCopy;
+    }
+
+    private Tree CreateTreeObject()
+    {
+        Tree treeCopy = Instantiate(tree);
+        treeCopy.SetTreePool(treePool);
+        return treeCopy;
+    }
+    
+    private SoundOrEffect CreateSoundOrEffectObject()
+    {
+        SoundOrEffect soundOrEffectCopy = Instantiate(soundOrEffect);
+        soundOrEffectCopy.SetSoundOrEffectPool(soundOrEffectPool);
+        return soundOrEffectCopy;
+    }
+
+    void OnGetStickFromPool(Stick pooledObject) { pooledObject.gameObject.SetActive(true); }
+    void OnReleaseStickToPool(Stick pooledObject) { pooledObject.gameObject.SetActive(false); }
+    void OnDestroyPooledStick(Stick pooledObject) { Destroy(pooledObject.gameObject); }
+    void OnGetDroneFromPool(Enemy pooledObject) { pooledObject.gameObject.SetActive(true); }
+    void OnReleaseDroneToPool(Enemy pooledObject) { pooledObject.gameObject.SetActive(false); }
+    void OnDestroyPooledDrone(Enemy pooledObject) { Destroy(pooledObject.gameObject); }
+    void OnGetTreeFromPool(Tree pooledObject) { pooledObject.gameObject.SetActive(true); }
+    void OnReleaseTreeToPool(Tree pooledObject) { pooledObject.gameObject.SetActive(false); }
+    void OnDestroyPooledTree(Tree pooledObject) { Destroy(pooledObject.gameObject); }
+    void OnGetSoundOrEffectFromPool(SoundOrEffect pooledObject) { pooledObject.gameObject.SetActive(true); }
+    void OnReleaseSoundOrEffectToPool(SoundOrEffect pooledObject) { pooledObject.gameObject.SetActive(false); }
+    void OnDestroyPooledSoundOrEffect(SoundOrEffect pooledObject) { Destroy(pooledObject.gameObject); }
+
+    public IObjectPool<Stick> GetStickPool() { return stickPool; }
+    public IObjectPool<Enemy> GetDronePool() { return dronePool; }
+    public IObjectPool<Tree> GetTreePool() { return treePool; }
+    public IObjectPool<SoundOrEffect> GetSoundOrEffectPool() { return soundOrEffectPool; }
+
 
 }

@@ -2,10 +2,14 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
-using UnityEditor.PackageManager;
+using UnityEngine.InputSystem;
+using UnityEngine.Pool;
+// using UnityEngine.UIElements;
 
 public class GameManager : MonoBehaviour
 {
+    public const float zBound = 10;
+    public const float xBound = 18;
     public static GameManager Instance;
     public enum Direction { LEFT, TOP, RIGHT };
     public enum CauseOfFailure { DRONE,MISSED_TREE}
@@ -17,9 +21,11 @@ public class GameManager : MonoBehaviour
     private float treeSpeed;
     private float enemySpawnRate;
     private float treeSpawnRate;
-    private const float zBound = 7;
-    private const float xBound = 11;
-    private AudioSource soundEffects;
+    private Vector3 cameraPosition;
+    private IObjectPool<Enemy> dronePool;
+    private IObjectPool<Tree> treePool;
+    private IObjectPool<SoundOrEffect> soundOrEffectPool;
+    private InputAction _pauseAction;
     [SerializeField] private GameObject[] enemies;
     [SerializeField] private GameObject[] powerUps;
     [SerializeField] private GameObject tree;
@@ -30,6 +36,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI livesText;
     [SerializeField] private TextMeshProUGUI pauseText;
     [SerializeField] private AudioClip crash;
+    [SerializeField] private AudioClip hurtSound;
     [SerializeField] private AudioSource music;
     [SerializeField] private ParticleSystem explosion;
     [SerializeField] private Slider musicVolumeSlider;
@@ -44,22 +51,25 @@ public class GameManager : MonoBehaviour
     }
     void Start()
     {
-        soundEffects = GetComponent<AudioSource>();
+        _pauseAction = InputSystem.actions.FindAction("Pause");
         backgroundScript = GameObject.FindGameObjectWithTag("Background").GetComponent<MoveBackground>();
         if (!PlayerPrefs.HasKey("musicVolume"))
         {
-            PlayerPrefs.SetFloat("musicVolume",musicVolumeSlider.value);
+            PlayerPrefs.SetFloat("musicVolume", musicVolumeSlider.value);
             PlayerPrefs.Save();
         }
         music.volume = PlayerPrefs.GetFloat("musicVolume");
         musicVolumeSlider.value = PlayerPrefs.GetFloat("musicVolume");
         if (!PlayerPrefs.HasKey("soundEffectsVolume"))
         {
-            PlayerPrefs.SetFloat("soundEffectsVolume",soundEffectsVolumeSlider.value);
+            PlayerPrefs.SetFloat("soundEffectsVolume", soundEffectsVolumeSlider.value);
             PlayerPrefs.Save();
         }
-        soundEffects.volume = PlayerPrefs.GetFloat("soundEffectsVolume");
         soundEffectsVolumeSlider.value = PlayerPrefs.GetFloat("soundEffectsVolume");
+        dronePool = ObjectPooler.Instance.GetDronePool();
+        treePool = ObjectPooler.Instance.GetTreePool();
+        soundOrEffectPool = ObjectPooler.Instance.GetSoundOrEffectPool();
+        cameraPosition = Camera.main.transform.position;
     }
 
     public void StartGame()
@@ -84,14 +94,13 @@ public class GameManager : MonoBehaviour
         isGameActive = true;
         Invoke(nameof(SpawnEnemy), enemySpawnRate);
         Invoke(nameof(SpawnTree), treeSpawnRate);
-        InvokeRepeating(nameof(IncreaseSpeed), 25, 25);
+        InvokeRepeating(nameof(IncreaseSpeed), 10, 25);
         InvokeRepeating(nameof(IncreaseSpawnRate), 25, 25);
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.P) && isGameActive){
+        if (_pauseAction.WasPressedThisFrame() && isGameActive){
             isPaused = !isPaused;
             scoreText.gameObject.SetActive(!scoreText.gameObject.activeSelf);
             highScoreText.gameObject.SetActive(!highScoreText.gameObject.activeSelf);
@@ -106,18 +115,25 @@ public class GameManager : MonoBehaviour
     public void AdjustMusicVolumeFromSlider()
     {
         music.volume = musicVolumeSlider.value;
-        // PlayerPrefs.SetFloat("musicVolume",musicVolumeSlider.value);
-        // PlayerPrefs.Save();
     }
 
     public void AdjustSoundEffectsVolumeFromSlider()
     {
-        soundEffects.volume = soundEffectsVolumeSlider.value;
-        // PlayerPrefs.SetFloat("soundEffectsVolume",soundEffectsVolumeSlider.value);
-        // PlayerPrefs.Save();
     }
 
-    public void PlayTestEffect(){ AudioSource.PlayClipAtPoint(crash, Camera.main.transform.position,soundEffectsVolumeSlider.value);}
+    public void PlaySound(AudioClip clipToPlay)
+    {
+        SoundOrEffect soundOrEffect = soundOrEffectPool.Get();
+        soundOrEffect.transform.position = cameraPosition;
+        soundOrEffect.SetAsSound(clipToPlay,soundEffectsVolumeSlider.value);
+    }
+
+    public void PlayParticleEffect(Vector3 positionToPlay)
+    {
+        SoundOrEffect soundOrEffect = soundOrEffectPool.Get();
+        soundOrEffect.transform.position = positionToPlay;
+        soundOrEffect.SetAsParticleEffect();
+    }
 
     public float GetSoundEffectsVolume(){return soundEffectsVolumeSlider.value;}
     public bool GetIsGameActive(){return isGameActive;}
@@ -140,18 +156,29 @@ public class GameManager : MonoBehaviour
     void SpawnEnemy()
     {
         Direction enemySpawnDirection = ChooseDirection();
-        int randNum = Random.Range(0, 3);
-        GameObject enemyToSpawn = enemySpawnDirection switch
+        Enemy drone;
+        switch (enemySpawnDirection)
         {
-            Direction.LEFT => Instantiate(enemies[randNum], GenerateSpawn(enemySpawnDirection, enemies[randNum].transform.position.y), Quaternion.Euler(0, 90, 0)),
-            Direction.TOP => Instantiate(enemies[randNum], GenerateSpawn(enemySpawnDirection, enemies[randNum].transform.position.y), Quaternion.Euler(0, -180, 0)),
-            _ => Instantiate(enemies[randNum], GenerateSpawn(enemySpawnDirection, enemies[randNum].transform.position.y), Quaternion.Euler(0, -90, 0)),
-        };
+            case Direction.LEFT:
+                drone = dronePool.Get();
+                drone.transform.SetPositionAndRotation(GenerateSpawn(enemySpawnDirection, drone.transform.position.y), Quaternion.Euler(0, 90, 0));
+                break;
+            case Direction.TOP:
+                drone = dronePool.Get();
+                drone.transform.SetPositionAndRotation(GenerateSpawn(enemySpawnDirection, drone.transform.position.y), Quaternion.Euler(0, -180, 0));
+                break;
+            case Direction.RIGHT:
+                drone = dronePool.Get();
+                drone.transform.SetPositionAndRotation(GenerateSpawn(enemySpawnDirection, drone.transform.position.y), Quaternion.Euler(0, -90, 0));
+                break;
+        }
         Invoke(nameof(SpawnEnemy), enemySpawnRate);
     }
 
     void SpawnTree(){
-        Instantiate(tree,GenerateSpawn(Direction.TOP,tree.transform.position.y),tree.transform.rotation);
+        Tree tree = treePool.Get();
+        tree.transform.SetPositionAndRotation(GenerateSpawn(Direction.TOP, tree.transform.position.y), tree.transform.rotation);
+        tree.SetSpeed(treeSpeed);
         Invoke(nameof(SpawnTree), treeSpawnRate);
     }
 
@@ -160,23 +187,23 @@ public class GameManager : MonoBehaviour
         switch (selectedDirection)
         {
             case Direction.LEFT:
-                randZ = Random.Range(-zBound, zBound);
-                return new Vector3(-17.1f, spawnedObjectYPos, randZ);
+                randZ = Random.Range(-zBound+4, zBound-4);
+                return new Vector3(-xBound, spawnedObjectYPos, randZ);
             case Direction.TOP:
-                float randX = Random.Range(-xBound, xBound);
-                return new Vector3(randX, spawnedObjectYPos, 10);
+                float randX = Random.Range(-xBound+4, xBound-4);
+                return new Vector3(randX, spawnedObjectYPos, zBound);
             case Direction.RIGHT:
-                randZ = Random.Range(-zBound, zBound);
-                return new Vector3(17.1f, spawnedObjectYPos, randZ);
+                randZ = Random.Range(-zBound+4, zBound-4);
+                return new Vector3(xBound, spawnedObjectYPos, randZ);
             default:
-                return new Vector3(17.1f, spawnedObjectYPos, 3);
+                return new Vector3(xBound, spawnedObjectYPos, 3);
         }
     }
 
     public void MovementRestrictions(GameObject movingObject){
-        if (movingObject.transform.position.x> xBound+7 ||
-        movingObject.transform.position.x<-(xBound+7) ||
-        movingObject.transform.position.z<-(zBound+7))
+        if (movingObject.transform.position.x> xBound ||
+        movingObject.transform.position.x<-xBound ||
+        movingObject.transform.position.z<-zBound)
         {
             if(movingObject.CompareTag("Tree"))
             {
@@ -234,10 +261,9 @@ public class GameManager : MonoBehaviour
     public void UpdateLives(int numToAdd,CauseOfFailure causeOfFailure = CauseOfFailure.DRONE){
         //Default value is never actually used, this is for when the player's lives are increased by a power up
         lives += numToAdd;
+        if (numToAdd < 0){PlaySound(hurtSound);}
         livesText.text=$"Lives:{lives}";
-        if (lives==0){
-            GameOver(causeOfFailure);
-        }
+        if (lives==0){GameOver(causeOfFailure);}
     }
 
     public void GameOver(CauseOfFailure causeOfFailure){

@@ -6,6 +6,8 @@ public class PowerUps : MonoBehaviour
 {
     private bool isDirectionSet;
     private float speed;
+    private const float zBound = GameManager.zBound;
+    private const float xBound = GameManager.xBound;
     private Vector3 directionVector;
     private GameManager.Direction direction;
     // Start is called before the first frame update
@@ -19,7 +21,13 @@ public class PowerUps : MonoBehaviour
     {
         if (isDirectionSet)
         {
-            transform.Translate(speed * Time.deltaTime * directionVector,Space.World);
+            transform.Translate(speed * Time.deltaTime * directionVector, Space.World);
+            if (transform.position.x> xBound ||
+            transform.position.x<-xBound ||
+            transform.position.z<-zBound)
+            {
+                Destroy(gameObject);
+            }
             GameManager.Instance.MovementRestrictions(gameObject);
         }
     }

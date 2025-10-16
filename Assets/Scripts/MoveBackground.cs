@@ -7,14 +7,13 @@ public class MoveBackground : MonoBehaviour
     private float speed;
     private Vector3 originalPosition;
     private BoxCollider boxCollider;
-    // Start is called before the first frame update
-    void Start()
+
+    void Awake()
     {
         originalPosition = transform.position;
         boxCollider = GetComponent<BoxCollider>();
-    }
+    } 
 
-    // Update is called once per frame
     void Update()
     {
         if (GameManager.Instance.GetIsGameActive())

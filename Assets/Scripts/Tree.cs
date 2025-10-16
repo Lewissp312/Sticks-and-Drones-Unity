@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Pool;
 using UnityEngine.UI;
 
 public class Tree : MonoBehaviour
@@ -10,30 +11,42 @@ public class Tree : MonoBehaviour
     private int sticksNeeded;
     private int originalSticksNeeded;
     private float speed;
-    private AudioSource treeAudio;
+    private readonly float zBound = GameManager.zBound;
+    private readonly float xBound = GameManager.xBound;
     private TextMesh treeText;
+    private IObjectPool<Tree> treePool;
+
     [SerializeField] private AudioClip completedSound;
 
-    // Start is called before the first frame update
+    void Awake()
+    {
+        treeText = transform.GetChild(0).gameObject.GetComponent<TextMesh>();
+        ResetObject();
+    } 
+
     void Start()
     {
-        treeAudio = GetComponent<AudioSource>();
-        treeAudio.volume = GameManager.Instance.GetSoundEffectsVolume();
-        sticksNeeded = Random.Range(1, 6);
-        originalSticksNeeded = sticksNeeded;
-        treeText = transform.GetChild(0).gameObject.GetComponent<TextMesh>();
-        treeText.text = $"{sticksNeeded}";
+        treePool = ObjectPooler.Instance.GetTreePool();
         speed = GameManager.Instance.GetTreeSpeed();
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (GameManager.Instance.GetIsGameActive())
         {
             transform.Translate(speed * Time.deltaTime * Vector3.forward);
         }
-        GameManager.Instance.MovementRestrictions(gameObject);
+        if (transform.position.x> xBound ||
+        transform.position.x<-xBound ||
+        transform.position.z<-zBound)
+        {
+            if(!isRebuilt)
+            {
+                GameManager.Instance.UpdateLives(-1,GameManager.CauseOfFailure.MISSED_TREE);
+            }
+            ResetObject();
+            treePool.Release(this);
+        }
     }
 
     void OnTriggerEnter(Collider other)
@@ -46,24 +59,21 @@ public class Tree : MonoBehaviour
                 if (!isRebuilt)
                 {
                     sticksNeeded -= otherObject.GetComponent<Stick>().GetIsSuperStick() ? 2 : 1;
-                    print($"I have been hit by a stick, I now need {sticksNeeded} more sticks");
                     if (sticksNeeded <= 0)
                     {
-                        AudioSource.PlayClipAtPoint(completedSound, Camera.main.transform.position, GameManager.Instance.GetSoundEffectsVolume());
+                        GameManager.Instance.PlaySound(completedSound);
                         GameManager.Instance.UpdateScore(originalSticksNeeded);
-                        treeText.GetComponent<TextMesh>().text = "Done!";
-                        // treeText.GetComponent<TextMesh>().color = new Color(173,93,4,255);
-                        treeText.GetComponent<TextMesh>().fontSize = 20;
+                        treeText.text = "Done!";
+                        treeText.fontSize = 20;
                         isRebuilt = true;
                     }
-                    else { treeText.GetComponent<TextMesh>().text = $"{sticksNeeded}"; }
-                    Destroy(otherObject);
+                    else { treeText.text = $"{sticksNeeded}"; }
+                    otherObject.GetComponent<Stick>().ReturnStickToPool();
                 }
             }
             else if (otherObject.CompareTag("TreeDangerWall") && !isRebuilt)
             {
-                // treeText.GetComponent<TextMesh>().color = Color.red;
-                treeText.GetComponent<TextMesh>().fontSize = 70;
+                treeText.fontSize = 70;
             }
         }
     }
@@ -77,6 +87,20 @@ public class Tree : MonoBehaviour
     {
         return treeText;
     }
-    
+
     public void SetSpeed(float speedToSet) { speed = speedToSet; }
+
+    public void SetTreePool(IObjectPool<Tree> poolToSet)
+    {
+        treePool = poolToSet;
+    }
+
+    public void ResetObject()
+    {
+        sticksNeeded = Random.Range(1, 6);
+        originalSticksNeeded = sticksNeeded;
+        treeText.text = $"{sticksNeeded}";
+        treeText.fontSize = 20;
+        isRebuilt = false;
+    }
 }
