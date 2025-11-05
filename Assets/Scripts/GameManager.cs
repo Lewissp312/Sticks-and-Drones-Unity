@@ -4,15 +4,14 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using UnityEngine.InputSystem;
 using UnityEngine.Pool;
-// using UnityEngine.UIElements;
 
 public class GameManager : MonoBehaviour
 {
     public const float zBound = 10;
-    public const float xBound = 18;
+    public const float xBound = 17;
     public static GameManager Instance;
     public enum Direction { LEFT, TOP, RIGHT };
-    public enum CauseOfFailure { DRONE,MISSED_TREE}
+    public enum CauseOfFailure { DRONE,LASER,MISSED_TREE}
     private bool isGameActive;
     private bool isPaused;
     private int score;
@@ -21,27 +20,32 @@ public class GameManager : MonoBehaviour
     private float treeSpeed;
     private float enemySpawnRate;
     private float treeSpawnRate;
+    private float soundEffectsVolume;
+    private MoveBackground backgroundScript;
     private Vector3 cameraPosition;
     private IObjectPool<Enemy> dronePool;
     private IObjectPool<Tree> treePool;
     private IObjectPool<SoundOrEffect> soundOrEffectPool;
     private InputAction _pauseAction;
-    [SerializeField] private GameObject[] enemies;
     [SerializeField] private GameObject[] powerUps;
-    [SerializeField] private GameObject tree;
-    [SerializeField] private GameObject titleText;
-    [SerializeField] private GameObject gameOverText;
+    [SerializeField] private GameObject mainMenu;
+    [SerializeField] private GameObject guideMenu;
+    [SerializeField] private GameObject pauseMenu;
+    [SerializeField] private GameObject gameOverMenu;
+    [SerializeField] private Button playButton;
+    [SerializeField] private Button backButton;
+    [SerializeField] private Button resumeButton;
+    [SerializeField] private Button gameOverRestartButton;
     [SerializeField] private TextMeshProUGUI scoreText;
     [SerializeField] private TextMeshProUGUI highScoreText;
     [SerializeField] private TextMeshProUGUI livesText;
-    [SerializeField] private TextMeshProUGUI pauseText;
-    [SerializeField] private AudioClip crash;
     [SerializeField] private AudioClip hurtSound;
     [SerializeField] private AudioSource music;
-    [SerializeField] private ParticleSystem explosion;
-    [SerializeField] private Slider musicVolumeSlider;
-    [SerializeField] private Slider soundEffectsVolumeSlider;
-    [SerializeField] private MoveBackground backgroundScript;
+    [SerializeField] private Slider musicVolumeMenuSlider;
+    [SerializeField] private Slider musicVolumePauseSlider;
+    [SerializeField] private Slider soundEffectsVolumeMenuSlider;
+    [SerializeField] private Slider soundEffectsVolumePauseSlider;
+    [SerializeField] private PlayerController playerController;
 
 
     void Awake()
@@ -55,17 +59,24 @@ public class GameManager : MonoBehaviour
         backgroundScript = GameObject.FindGameObjectWithTag("Background").GetComponent<MoveBackground>();
         if (!PlayerPrefs.HasKey("musicVolume"))
         {
-            PlayerPrefs.SetFloat("musicVolume", musicVolumeSlider.value);
+            PlayerPrefs.SetFloat("musicVolume", musicVolumeMenuSlider.value);
             PlayerPrefs.Save();
         }
         music.volume = PlayerPrefs.GetFloat("musicVolume");
-        musicVolumeSlider.value = PlayerPrefs.GetFloat("musicVolume");
-        if (!PlayerPrefs.HasKey("soundEffectsVolume"))
+        musicVolumeMenuSlider.value = music.volume;
+        if (!PlayerPrefs.HasKey("musicTime"))
         {
-            PlayerPrefs.SetFloat("soundEffectsVolume", soundEffectsVolumeSlider.value);
+            PlayerPrefs.SetFloat("musicTime", 0);
             PlayerPrefs.Save();
         }
-        soundEffectsVolumeSlider.value = PlayerPrefs.GetFloat("soundEffectsVolume");
+        music.time = PlayerPrefs.GetFloat("musicTime");
+        if (!PlayerPrefs.HasKey("soundEffectsVolume"))
+        {
+            PlayerPrefs.SetFloat("soundEffectsVolume", soundEffectsVolumeMenuSlider.value);
+            PlayerPrefs.Save();
+        } 
+        soundEffectsVolume = PlayerPrefs.GetFloat("soundEffectsVolume");
+        soundEffectsVolumeMenuSlider.value = soundEffectsVolume;
         dronePool = ObjectPooler.Instance.GetDronePool();
         treePool = ObjectPooler.Instance.GetTreePool();
         soundOrEffectPool = ObjectPooler.Instance.GetSoundOrEffectPool();
@@ -74,10 +85,12 @@ public class GameManager : MonoBehaviour
 
     public void StartGame()
     {
-        titleText.SetActive(false);
-        PlayerPrefs.SetFloat("musicVolume",musicVolumeSlider.value);
-        PlayerPrefs.SetFloat("soundEffectsVolume",soundEffectsVolumeSlider.value);
+        mainMenu.SetActive(false);
+        PlayerPrefs.SetFloat("musicVolume",musicVolumeMenuSlider.value);
+        PlayerPrefs.SetFloat("soundEffectsVolume",soundEffectsVolumeMenuSlider.value);
         PlayerPrefs.Save();
+        musicVolumePauseSlider.value = musicVolumeMenuSlider.value;
+        soundEffectsVolumePauseSlider.value = soundEffectsVolumeMenuSlider.value;
         enemySpawnRate = 2;
         treeSpawnRate = 5;
         enemySpeed = 4.0f;
@@ -100,42 +113,84 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (_pauseAction.WasPressedThisFrame() && isGameActive){
-            isPaused = !isPaused;
-            scoreText.gameObject.SetActive(!scoreText.gameObject.activeSelf);
-            highScoreText.gameObject.SetActive(!highScoreText.gameObject.activeSelf);
-            livesText.gameObject.SetActive(!livesText.gameObject.activeSelf);
-            pauseText.gameObject.SetActive(!pauseText.gameObject.activeSelf);
-            AudioListener.pause = !AudioListener.pause;
-            Time.timeScale = isPaused ? 0 : 1;
+        if (_pauseAction.WasPressedThisFrame() && isGameActive)
+        {
+            PauseMenu();
         }
-
     }
 
-    public void AdjustMusicVolumeFromSlider()
+    public void PauseMenu()
     {
-        music.volume = musicVolumeSlider.value;
+        isPaused = !isPaused;
+        scoreText.gameObject.SetActive(!scoreText.gameObject.activeSelf);
+        highScoreText.gameObject.SetActive(!highScoreText.gameObject.activeSelf);
+        livesText.gameObject.SetActive(!livesText.gameObject.activeSelf);
+        pauseMenu.SetActive(!pauseMenu.activeSelf);
+        Time.timeScale = isPaused ? 0 : 1;
+        if (isPaused)
+        {
+            resumeButton.Select();
+        }
+        if (!isPaused)
+        {
+            PlayerPrefs.SetFloat("musicVolume", musicVolumePauseSlider.value);
+            PlayerPrefs.SetFloat("soundEffectsVolume", soundEffectsVolumePauseSlider.value);
+            PlayerPrefs.Save();
+        }
+    }
+    
+    public void GuideMenu()
+    {
+        mainMenu.SetActive(!mainMenu.activeSelf);
+        guideMenu.SetActive(!guideMenu.activeSelf);
+        if (mainMenu.activeSelf){playButton.Select();}
+        else{backButton.Select();}
     }
 
-    public void AdjustSoundEffectsVolumeFromSlider()
+    public void AdjustMusicVolumeFromMenuSlider()
     {
+        music.volume = musicVolumeMenuSlider.value;
+    }
+
+    public void AdjustSoundEffectsVolumeFromMenuSlider()
+    {
+        float soundEffectsVolumeDifference = soundEffectsVolume - soundEffectsVolumeMenuSlider.value;
+        soundEffectsVolume = soundEffectsVolumeMenuSlider.value;
+        if (soundEffectsVolumeDifference < -0.05 || soundEffectsVolumeDifference > 0.05)
+        {
+            PlaySound(hurtSound);
+        }
+    }
+
+    public void AdjustMusicVolumeFromPauseSlider()
+    {
+        music.volume = musicVolumePauseSlider.value;
+    }
+
+    public void AdjustSoundEffectsVolumeFromPauseSlider()
+    {
+        float soundEffectsVolumeDifference = soundEffectsVolume - soundEffectsVolumePauseSlider.value;
+        soundEffectsVolume = soundEffectsVolumePauseSlider.value;
+        if (soundEffectsVolumeDifference < -0.05 || soundEffectsVolumeDifference > 0.05)
+        {
+            PlaySound(hurtSound);
+        }
     }
 
     public void PlaySound(AudioClip clipToPlay)
     {
         SoundOrEffect soundOrEffect = soundOrEffectPool.Get();
         soundOrEffect.transform.position = cameraPosition;
-        soundOrEffect.SetAsSound(clipToPlay,soundEffectsVolumeSlider.value);
+        soundOrEffect.SetAsSound(clipToPlay, soundEffectsVolume);
     }
 
-    public void PlayParticleEffect(Vector3 positionToPlay)
+    public void PlayParticleEffect(Vector3 positionToPlay, SoundOrEffect.Purpose purpose)
     {
         SoundOrEffect soundOrEffect = soundOrEffectPool.Get();
         soundOrEffect.transform.position = positionToPlay;
-        soundOrEffect.SetAsParticleEffect();
+        soundOrEffect.SetAsParticleEffect(purpose);
     }
 
-    public float GetSoundEffectsVolume(){return soundEffectsVolumeSlider.value;}
     public bool GetIsGameActive(){return isGameActive;}
     public bool GetIsGamePaused() { return isPaused; }
     public int GetLives() { return lives; }
@@ -156,22 +211,43 @@ public class GameManager : MonoBehaviour
     void SpawnEnemy()
     {
         Direction enemySpawnDirection = ChooseDirection();
-        Enemy drone;
+        Enemy drone = dronePool.Get();
+        Vector3 generatedSpawn = GenerateSpawn(enemySpawnDirection, drone.transform.position.y);
+        drone.transform.position = generatedSpawn;
         switch (enemySpawnDirection)
         {
             case Direction.LEFT:
-                drone = dronePool.Get();
-                drone.transform.SetPositionAndRotation(GenerateSpawn(enemySpawnDirection, drone.transform.position.y), Quaternion.Euler(0, 90, 0));
+                drone.transform.rotation = Quaternion.Euler(0, 90, 0);
                 break;
             case Direction.TOP:
-                drone = dronePool.Get();
-                drone.transform.SetPositionAndRotation(GenerateSpawn(enemySpawnDirection, drone.transform.position.y), Quaternion.Euler(0, -180, 0));
+                drone.transform.rotation = Quaternion.Euler(0, -180, 0);
                 break;
             case Direction.RIGHT:
-                drone = dronePool.Get();
-                drone.transform.SetPositionAndRotation(GenerateSpawn(enemySpawnDirection, drone.transform.position.y), Quaternion.Euler(0, -90, 0));
+                drone.transform.rotation = Quaternion.Euler(0, -90, 0);
                 break;
         }
+        if (generatedSpawn.z > -2)
+        {
+            int randNum = Random.Range(1, 10);
+            if (randNum == 3)
+            {
+                Vector3 shootingPosition;
+                switch (enemySpawnDirection)
+                {
+                    case Direction.LEFT or Direction.RIGHT:
+                        float randX = Random.Range(-xBound + 4, xBound - 4);
+                        shootingPosition = new(randX, generatedSpawn.y, generatedSpawn.z);
+                        drone.SetAsShootingEnemy(shootingPosition);
+                        break;
+                    case Direction.TOP:
+                        float randZ = Random.Range(-3f, zBound - 4);
+                        shootingPosition = new(generatedSpawn.x, generatedSpawn.y, randZ);
+                        drone.SetAsShootingEnemy(shootingPosition);
+                        break;
+                }
+            }
+        }
+        drone.SetSpeed(enemySpeed);
         Invoke(nameof(SpawnEnemy), enemySpawnRate);
     }
 
@@ -200,22 +276,6 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void MovementRestrictions(GameObject movingObject){
-        if (movingObject.transform.position.x> xBound ||
-        movingObject.transform.position.x<-xBound ||
-        movingObject.transform.position.z<-zBound)
-        {
-            if(movingObject.CompareTag("Tree"))
-            {
-                if(!movingObject.GetComponent<Tree>().GetIsRebuilt())
-                {
-                    UpdateLives(-1,CauseOfFailure.MISSED_TREE);
-                }
-            }
-            Destroy(movingObject);
-        }
-    }
-
     void IncreaseSpeed()
     {
         enemySpeed += 0.5f;
@@ -226,9 +286,14 @@ public class GameManager : MonoBehaviour
         foreach (GameObject tree in activeTrees) { tree.GetComponent<Tree>().SetSpeed(treeSpeed); }
         backgroundScript.SetSpeed(treeSpeed);
         Direction spawnDirection = ChooseDirection();
-        int randNum = Random.Range(0, 4);
+        int randNum = Random.Range(0, 6);
+        if (randNum == 4 && treeSpeed < 1.5f)
+        {
+            randNum = 0;
+        }
         GameObject powerUp = Instantiate(powerUps[randNum], GenerateSpawn(spawnDirection, powerUps[randNum].transform.position.y), powerUps[randNum].transform.rotation);
         powerUp.GetComponent<PowerUps>().SetDirection(spawnDirection);
+        playerController.IncreaseSpeed(0.5f);
     }
 
     void IncreaseSpawnRate()
@@ -245,7 +310,24 @@ public class GameManager : MonoBehaviour
         int randNum = Random.Range(0, 4);
         GameObject powerUp = Instantiate(powerUps[randNum], GenerateSpawn(powerUpSpawnDirection, powerUps[randNum].transform.position.y), powerUps[randNum].transform.rotation);
         powerUp.GetComponent<PowerUps>().SetDirection(powerUpSpawnDirection);
-        
+    }
+
+    public void DecreaseSpeed(int speedToDecrease)
+    {
+        switch (speedToDecrease)
+        {
+            case 1:
+                enemySpeed -= 1;
+                GameObject[] activeEnemies = GameObject.FindGameObjectsWithTag("Enemy");
+                foreach (GameObject enemy in activeEnemies) { enemy.GetComponent<Enemy>().SetSpeed(enemySpeed); }
+                break;
+            case 2:
+                treeSpeed -= 1;
+                GameObject[] activeTrees = GameObject.FindGameObjectsWithTag("Tree");
+                foreach (GameObject tree in activeTrees) { tree.GetComponent<Tree>().SetSpeed(treeSpeed); }
+                backgroundScript.SetSpeed(treeSpeed);
+                break;
+        }
     }
 
     public void UpdateScore(int numToAdd)
@@ -275,23 +357,50 @@ public class GameManager : MonoBehaviour
         switch (causeOfFailure)
         {
             case CauseOfFailure.DRONE:
-                gameOverText.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().text = "Game over, you were hit by a drone!";
-                GameObject.FindGameObjectWithTag("Player").SetActive(false);
+                gameOverMenu.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().text = "Game over, you were hit by a drone!";
+                break;
+            case CauseOfFailure.LASER:
+                gameOverMenu.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().text = "Game over, you were hit by a drone's laser!";
                 break;
             case CauseOfFailure.MISSED_TREE:
-                gameOverText.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().text = "Game over, you missed a tree!";
+                gameOverMenu.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().text = "Game over, you missed a tree!";
                 break;
         }
-        gameOverText.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>().text = $"Your final score was {score}";
+        gameOverMenu.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>().text = $"Your final score was {score}";
         if (score > PlayerPrefs.GetInt("highScore"))
         {
-            gameOverText.transform.GetChild(2).gameObject.SetActive(true);
+            gameOverMenu.transform.GetChild(2).gameObject.SetActive(true);
             PlayerPrefs.SetInt("highScore", score);
         }
-        gameOverText.SetActive(true);
+        gameOverRestartButton.Select();
+        gameOverMenu.SetActive(true);
     }
 
-    public void RestartGame(){
+    public void RestartGame()
+    {
+        if (isPaused)
+        {
+            PlayerPrefs.SetFloat("musicVolume", musicVolumePauseSlider.value);
+            PlayerPrefs.SetFloat("soundEffectsVolume", soundEffectsVolumePauseSlider.value);
+            PlayerPrefs.Save();
+            Time.timeScale = 1;
+        }
+        PlayerPrefs.SetFloat("musicTime", music.time);
+        PlayerPrefs.Save();
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    public void QuitGame()
+    {
+        PlayerPrefs.SetFloat("musicVolume", musicVolumeMenuSlider.value);
+        PlayerPrefs.SetFloat("musicTime", 0);
+        PlayerPrefs.SetFloat("soundEffectsVolume", soundEffectsVolumeMenuSlider.value);
+        PlayerPrefs.Save();
+        #if UNITY_STANDALONE
+            Application.Quit();
+        #endif
+        #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+        #endif
     }
 }

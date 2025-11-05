@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
-using TMPro;
+using System;
 using UnityEngine;
 using UnityEngine.Pool;
-using UnityEngine.UI;
 
 public class Tree : MonoBehaviour
 {
@@ -15,6 +12,7 @@ public class Tree : MonoBehaviour
     private readonly float xBound = GameManager.xBound;
     private TextMesh treeText;
     private IObjectPool<Tree> treePool;
+    private IObjectPool<Stick> stickPool;
 
     [SerializeField] private AudioClip completedSound;
 
@@ -27,7 +25,6 @@ public class Tree : MonoBehaviour
     void Start()
     {
         treePool = ObjectPooler.Instance.GetTreePool();
-        speed = GameManager.Instance.GetTreeSpeed();
     }
 
     void Update()
@@ -44,7 +41,6 @@ public class Tree : MonoBehaviour
             {
                 GameManager.Instance.UpdateLives(-1,GameManager.CauseOfFailure.MISSED_TREE);
             }
-            ResetObject();
             treePool.Release(this);
         }
     }
@@ -58,17 +54,18 @@ public class Tree : MonoBehaviour
             {
                 if (!isRebuilt)
                 {
-                    sticksNeeded -= otherObject.GetComponent<Stick>().GetIsSuperStick() ? 2 : 1;
+                    Stick stickInstance = otherObject.GetComponent<Stick>();
+                    sticksNeeded -= stickInstance.GetIsSuperStick() ? 2 : 1;
                     if (sticksNeeded <= 0)
                     {
                         GameManager.Instance.PlaySound(completedSound);
                         GameManager.Instance.UpdateScore(originalSticksNeeded);
                         treeText.text = "Done!";
-                        treeText.fontSize = 20;
+                        if (treeText.fontSize != 20) { treeText.fontSize = 20;}
                         isRebuilt = true;
                     }
                     else { treeText.text = $"{sticksNeeded}"; }
-                    otherObject.GetComponent<Stick>().ReturnStickToPool();
+                    try { stickPool.Release(stickInstance); } catch (Exception) { }
                 }
             }
             else if (otherObject.CompareTag("TreeDangerWall") && !isRebuilt)
@@ -76,6 +73,11 @@ public class Tree : MonoBehaviour
                 treeText.fontSize = 70;
             }
         }
+    }
+
+    void OnDisable()
+    {
+        ResetObject();
     }
 
     public bool GetIsRebuilt()
@@ -90,14 +92,19 @@ public class Tree : MonoBehaviour
 
     public void SetSpeed(float speedToSet) { speed = speedToSet; }
 
-    public void SetTreePool(IObjectPool<Tree> poolToSet)
+    public void SetTreePool(IObjectPool<Tree> treePool)
     {
-        treePool = poolToSet;
+        this.treePool = treePool;
+    }
+
+    public void SetStickPool(IObjectPool<Stick> stickPool)
+    {
+        this.stickPool = stickPool;
     }
 
     public void ResetObject()
     {
-        sticksNeeded = Random.Range(1, 6);
+        sticksNeeded = UnityEngine.Random.Range(1, 6);
         originalSticksNeeded = sticksNeeded;
         treeText.text = $"{sticksNeeded}";
         treeText.fontSize = 20;

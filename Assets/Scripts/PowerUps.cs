@@ -1,34 +1,42 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PowerUps : MonoBehaviour
 {
-    private bool isDirectionSet;
     private float speed;
     private const float zBound = GameManager.zBound;
     private const float xBound = GameManager.xBound;
     private Vector3 directionVector;
     private GameManager.Direction direction;
-    // Start is called before the first frame update
+
+    void Awake()
+    {
+        directionVector = Vector3.back;
+    } 
+
     void Start()
     {
         speed = GameManager.Instance.GetEnemySpeed();
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (isDirectionSet)
+        if (GameManager.Instance.GetIsGameActive())
         {
             transform.Translate(speed * Time.deltaTime * directionVector, Space.World);
-            if (transform.position.x> xBound ||
-            transform.position.x<-xBound ||
-            transform.position.z<-zBound)
+            if (transform.position.x > xBound ||
+            transform.position.x < -xBound ||
+            transform.position.z < -zBound)
             {
                 Destroy(gameObject);
             }
-            GameManager.Instance.MovementRestrictions(gameObject);
+        }
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.CompareTag("Player"))
+        {
+            Destroy(gameObject);
         }
     }
 
@@ -47,6 +55,5 @@ public class PowerUps : MonoBehaviour
                     directionVector = Vector3.left;
                     break;
             }
-        isDirectionSet = true;
     }
 }
