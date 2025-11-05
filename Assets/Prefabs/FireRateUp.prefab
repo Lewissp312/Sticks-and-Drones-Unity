@@ -228,7 +228,7 @@ GameObject:
   - component: {fileID: 8265255280960438160}
   - component: {fileID: 2862803036748934286}
   m_Layer: 0
-  m_Name: Fire Rate Up
+  m_Name: FireRateUp
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

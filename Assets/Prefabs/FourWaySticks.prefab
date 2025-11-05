@@ -336,7 +336,7 @@ GameObject:
   - component: {fileID: 1751473384857009392}
   - component: {fileID: -8665950572499362491}
   m_Layer: 0
-  m_Name: Four Way Sticks
+  m_Name: FourWaySticks
   m_TagString: FourWaySticks
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -14,6 +14,9 @@ TagManager:
   - SoundEffect
   - FourWaySticks
   - TreeDangerWall
+  - TreeSpeedDown
+  - DroneSpeedDown
+  - Laser
   layers:
   - Default
   - TransparentFX

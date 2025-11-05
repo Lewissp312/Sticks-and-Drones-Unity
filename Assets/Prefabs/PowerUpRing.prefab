@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 6348334891727730813}
   - component: {fileID: 6358027498501533127}
   m_Layer: 0
-  m_Name: Power Up Ring
+  m_Name: PowerUpRing
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

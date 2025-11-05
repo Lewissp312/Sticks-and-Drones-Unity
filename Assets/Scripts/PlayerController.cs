@@ -1,19 +1,20 @@
 ﻿using System.Collections;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Pool;
 
 public class PlayerController : MonoBehaviour
 {
-    private bool canShoot=true;
+    private bool canShoot;
     private bool hasArmour;
     private bool hasPowerUp;
     private bool hasSuperSticks;
     private bool hasFourWaySticks;
-    private const float speed = 10.0f;
-    private const float zBound = 7f;
-    private const float xBound=14;
+    private float speed;
+    private float stickSpeed;
+    private readonly float zBound = 7f;
+    private readonly float xBound = 13;
+    private Animator playerAnim;
     private IObjectPool<Stick> stickPool;
     private InputAction _moveAction;
     private InputAction _shootAction;    
@@ -24,6 +25,14 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private GameObject fourWaySticksRing;
     [SerializeField] private ParticleSystem explosion;
 
+    void Awake()
+    {
+        canShoot = true;
+        speed = 11.5f;
+        stickSpeed = speed + 5;
+        playerAnim = GetComponent<Animator>();
+    }
+
     void Start()
     {
         //WASD / arrow keys or left stick on a controller
@@ -31,10 +40,8 @@ public class PlayerController : MonoBehaviour
         //The space bar / left click or west gamepad button / right trigger  (e.g Y, Triangle)
         _shootAction = InputSystem.actions.FindAction("Shoot");
         stickPool = ObjectPooler.Instance.GetStickPool();
-
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (GameManager.Instance.GetIsGameActive())
@@ -51,18 +58,22 @@ public class PlayerController : MonoBehaviour
                 if (hasSuperSticks)
                 {
                     stickCopy.SetIsSuperStick();
+                    stickCopy.SetSpeed(stickSpeed);
                 }
                 else if (hasFourWaySticks)
                 {
                     Stick stickCopy2 = stickPool.Get();
                     //Downwards
                     stickCopy2.transform.SetPositionAndRotation(transform.position + new Vector3(0, 0.3f, -1), Quaternion.identity);
+                    stickCopy2.SetSpeed(stickSpeed);
                     Stick stickCopy3 = stickPool.Get();
                     //Right
                     stickCopy3.transform.SetPositionAndRotation(transform.position + new Vector3(1, 0.3f, 0), Quaternion.Euler(0, 90, 0));
+                    stickCopy3.SetSpeed(stickSpeed);
                     Stick stickCopy4 = stickPool.Get();
                     //Left
                     stickCopy4.transform.SetPositionAndRotation(transform.position + new Vector3(-1, 0.3f, 0), Quaternion.Euler(0, -90, 0));
+                    stickCopy4.SetSpeed(stickSpeed);
                 }
                 canShoot = false;
                 StartCoroutine(WaitToShoot());
@@ -86,16 +97,38 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter(Collider other){
+    void OnTriggerEnter(Collider other)
+    {
         GameObject otherObject = other.gameObject;
         if (otherObject.CompareTag("Enemy") && !hasArmour)
         {
             GameManager.Instance.UpdateLives(-1, GameManager.CauseOfFailure.DRONE);
+            if (GameManager.Instance.GetIsGameActive()){PlayAnimation("Hit Trigger");}
+            else{PlayAnimation("Death Trigger");}
+        }
+        else if (otherObject.CompareTag("Laser"))
+        {
+            if (!hasArmour)
+            {
+                GameManager.Instance.UpdateLives(-1, GameManager.CauseOfFailure.LASER);
+                if (GameManager.Instance.GetIsGameActive()){PlayAnimation("Hit Trigger");}
+                else{PlayAnimation("Death Trigger");}
+            }
         }
         else if (otherObject.CompareTag("Heal"))
         {
             GameManager.Instance.UpdateLives(3 - GameManager.Instance.GetLives());
-            Destroy(otherObject);
+            PlayAnimation("Spin Trigger");
+        }
+        else if (otherObject.CompareTag("DroneSpeedDown"))
+        {
+            GameManager.Instance.DecreaseSpeed(1);
+            PlayAnimation("Spin Trigger");
+        }
+        else if (otherObject.CompareTag("TreeSpeedDown"))
+        {
+            GameManager.Instance.DecreaseSpeed(2);
+            PlayAnimation("Spin Trigger");
         }
         else if (otherObject.CompareTag("SuperSticks") || otherObject.CompareTag("Armor") || otherObject.CompareTag("FourWaySticks"))
         {
@@ -126,21 +159,42 @@ public class PlayerController : MonoBehaviour
                 fourWaySticksRing.SetActive(true);
                 hasFourWaySticks = true;
             }
-            Destroy(otherObject);
-            StartCoroutine(PowerUpCountdown());
+            PlayAnimation("Spin Trigger");
+            StartCoroutine(WaitForPowerupCooldown());
         }
     }
 
-    public bool GetHasArmour() {return hasArmour;}
+    private void PlayAnimation(string animationTrigger)
+    {
+        StopCoroutine(nameof(WaitforAnimationToFinish));
+        playerAnim.ResetTrigger("Spin Trigger");
+        playerAnim.ResetTrigger("Hit Trigger");
+        playerAnim.SetTrigger("Fly Trigger");
+        playerAnim.SetTrigger(animationTrigger);
+        StartCoroutine(WaitforAnimationToFinish(playerAnim.GetCurrentAnimatorStateInfo(0).length,animationTrigger));
+    }
 
+    public bool GetHasArmour() { return hasArmour; }
 
+    public void IncreaseSpeed(float numToAdd)
+    {
+        speed += numToAdd;
+        stickSpeed = speed + 5;
+    }
+
+    IEnumerator WaitforAnimationToFinish(float timeToFinish, string animationTrigger)
+    {
+        yield return new WaitForSeconds(timeToFinish);
+        playerAnim.ResetTrigger(animationTrigger);
+        playerAnim.SetTrigger("Fly Trigger");
+    }
 
     IEnumerator WaitToShoot(){
         yield return _waitForSeconds0_1;
         canShoot=true;
     }
 
-    IEnumerator PowerUpCountdown()
+    IEnumerator WaitForPowerupCooldown()
     {
         yield return _waitForSeconds10;
         hasPowerUp = false;
