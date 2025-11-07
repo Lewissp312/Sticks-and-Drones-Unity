@@ -1412,10 +1412,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 38e917c52987daa41af6a0305d9813c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  stick: {fileID: 4451941183071688819, guid: 006e392d17557b045b1e173abb80f1e8, type: 3}
-  armourRing: {fileID: 5184857279367959819}
-  fourWaySticksRing: {fileID: 2447958886495801185}
-  explosion: {fileID: 9125212449759046732, guid: cb7cd9b0c56a24d49a40784bd3203ae6, type: 3}
+  _stick: {fileID: 4451941183071688819, guid: 006e392d17557b045b1e173abb80f1e8, type: 3}
+  _armourRing: {fileID: 5184857279367959819}
+  _fourWaySticksRing: {fileID: 2447958886495801185}
 --- !u!82 &8948429550650603572
 AudioSource:
   m_ObjectHideFlags: 0

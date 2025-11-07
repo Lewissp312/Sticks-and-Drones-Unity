@@ -1,28 +1,29 @@
 using System;
 using UnityEngine;
 using UnityEngine.Pool;
-
+/// <summary>
+/// Controls the behaviour of enemy lasers
+/// </summary>
 public class Laser : MonoBehaviour
 {
-    private float speed;
-    private readonly float zBound = GameManager.zBound;
-    private readonly float xBound = GameManager.xBound;
-    private IObjectPool<Laser> laserPool;
-    [SerializeField] private AudioClip explosionSound;
-    void Start()
-    {
-        speed = GameManager.Instance.GetEnemySpeed();
-    }
+    private float _speed;
+    private readonly float _zBound = GameManager.zBound;
+    private readonly float _xBound = GameManager.xBound;
+    private IObjectPool<Laser> _laserPool;
+    [SerializeField] private AudioClip _explosionSound;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Unity methods
 
     void Update()
     {
-        transform.Translate(speed * Time.deltaTime * Vector3.up);
-        if (transform.position.x>xBound ||
-        transform.position.x<-xBound ||
-        transform.position.z<-zBound)
+        transform.Translate(_speed * Time.deltaTime * Vector3.up);
+        if (transform.position.x>_xBound ||
+            transform.position.x<-_xBound ||
+            transform.position.z<-_zBound)
         {
-            transform.rotation = Quaternion.identity;
-            try{laserPool.Release(this);} catch (Exception){}
+            try{_laserPool.Release(this);} catch (Exception){}
         }            
     }
 
@@ -30,19 +31,17 @@ public class Laser : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Player"))
         {
-            GameManager.Instance.PlaySound(explosionSound);
+            GameManager.Instance.PlaySound(_explosionSound);
             GameManager.Instance.PlayParticleEffect(transform.position, SoundOrEffect.Purpose.LASER_EXPLOSION);
-            try { laserPool.Release(this); } catch (Exception) { }
+            try { _laserPool.Release(this); } catch (Exception) { }
         }
     }
 
-    public void SetSpeed(float speed)
-    {
-        this.speed = speed;
-    }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Public class methods
+
+    public void SetSpeed(float speed){_speed = speed;}
     
-    public void SetLaserPool(IObjectPool<Laser> laserPool)
-    {
-        this.laserPool = laserPool;
-    }
+    public void SetLaserPool(IObjectPool<Laser> laserPool){_laserPool = laserPool;}
 }

@@ -3,65 +3,73 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Pool;
 
+/// <summary>
+/// Controls behaviour for enemies, drones that fly across the screen which
+/// can be destroyed by the player and can hurt them if they collide with one.
+/// </summary>
 public class Enemy : MonoBehaviour
 {
-    private int health;
-    private float speed;
-    private readonly float fireRate = 1;
-    private bool isAShootingEnemy;
-    private bool isAtShootingPosition;
-    private bool canShoot;
-    private readonly float zBound = GameManager.zBound;
-    private readonly float xBound = GameManager.xBound;
-    private GameObject player;
-    private Vector3 shootingPosition;
-    private IObjectPool<Enemy> dronePool;
-    private IObjectPool<Laser> laserPool;
-    [SerializeField] private AudioClip explosionSound;
+    private int _health;
+    private float _speed;
+    private readonly float _fireRate = 1;
+    private bool _isAShootingEnemy;
+    private bool _isAtShootingPosition;
+    private bool _canShoot;
+    private readonly float _zBound = GameManager.zBound;
+    private readonly float _xBound = GameManager.xBound;
+    private GameObject _player;
+    private Vector3 _shootingPosition;
+    private IObjectPool<Enemy> _dronePool;
+    private IObjectPool<Laser> _laserPool;
+    [SerializeField] private AudioClip _explosionSound;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Unity methods
+
     void Awake()
     {
-        health = 5;
-    } 
+        _health = 5;
+    }
 
     void Start()
     {
-        player = GameObject.Find("Player");
+        _player = GameObject.Find("Player");
     }
 
     void Update()
     {
         if (GameManager.Instance.GetIsGameActive())
         {
-            if (isAtShootingPosition)
+            if (_isAtShootingPosition)
             {
-                transform.LookAt(player.transform.position); 
-                if (canShoot)
+                transform.LookAt(_player.transform.position);
+                if (_canShoot)
                 {
-                    Laser laser = laserPool.Get();
+                    Laser laser = _laserPool.Get();
                     Vector3 laserPosition = transform.forward + transform.position;
                     Quaternion laserRotation = transform.rotation * Quaternion.Euler(90, 0, 0);
                     laser.transform.SetPositionAndRotation(laserPosition, laserRotation);
-                    laser.SetSpeed(speed + 1);
-                    canShoot = false;
+                    laser.SetSpeed(_speed + 1);
+                    _canShoot = false;
                     StartCoroutine(WaitToShoot());
-                }  
+                }
             }
             else
             {
-                if (isAShootingEnemy)
+                if (_isAShootingEnemy)
                 {
-                    if (Vector3.Distance(transform.position, shootingPosition) <= 0.5f)
+                    if (Vector3.Distance(transform.position, _shootingPosition) <= 0.5f)
                     {
-                        isAtShootingPosition = true;
+                        _isAtShootingPosition = true;
                     }
                 }
-                transform.Translate(speed * Time.deltaTime * Vector3.forward);
-                if (transform.position.x>xBound ||
-                transform.position.x<-xBound ||
-                transform.position.z<-zBound)
+                transform.Translate(_speed * Time.deltaTime * Vector3.forward);
+                if (transform.position.x > _xBound ||
+                    transform.position.x < -_xBound ||
+                    transform.position.z < -_zBound)
                 {
-                    transform.rotation = Quaternion.identity;
-                    try{dronePool.Release(this);} catch (Exception){}
+                    try { _dronePool.Release(this); } catch (Exception) { }
                 }
             }
         }
@@ -74,23 +82,23 @@ public class Enemy : MonoBehaviour
         {
             if (otherObject.GetComponent<PlayerController>().GetHasArmour())
             {
-                if (isAShootingEnemy) { GameManager.Instance.UpdateScore(6); }
+                if (_isAShootingEnemy) { GameManager.Instance.UpdateScore(6); }
                 else { GameManager.Instance.UpdateScore(3); }
             }
-            GameManager.Instance.PlaySound(explosionSound);
+            GameManager.Instance.PlaySound(_explosionSound);
             GameManager.Instance.PlayParticleEffect(transform.position, SoundOrEffect.Purpose.DRONE_EXPLOSION);
-            try { dronePool.Release(this); } catch (Exception) { }
+            try { _dronePool.Release(this); } catch (Exception) { }
         }
         else if (otherObject.CompareTag("Stick"))
         {
-            health -= 1;
-            if (health <= 0 || otherObject.GetComponent<Stick>().GetIsSuperStick())
+            _health -= 1;
+            if (_health <= 0 || otherObject.GetComponent<Stick>().GetIsSuperStick())
             {
-                if (isAShootingEnemy) { GameManager.Instance.UpdateScore(6); }
+                if (_isAShootingEnemy) { GameManager.Instance.UpdateScore(6); }
                 else { GameManager.Instance.UpdateScore(3); }
-                GameManager.Instance.PlaySound(explosionSound);
+                GameManager.Instance.PlaySound(_explosionSound);
                 GameManager.Instance.PlayParticleEffect(transform.position, SoundOrEffect.Purpose.DRONE_EXPLOSION);
-                try { dronePool.Release(this); } catch (Exception) { }
+                try { _dronePool.Release(this); } catch (Exception) { }
             }
             else
             {
@@ -102,38 +110,40 @@ public class Enemy : MonoBehaviour
 
     void OnDisable()
     {
-        health = 5;
-        if (isAShootingEnemy)
+        _health = 5;
+        if (_isAShootingEnemy)
         {
-            isAShootingEnemy = false;
-            isAtShootingPosition = false;
-            canShoot = false;
+            _isAShootingEnemy = false;
+            _isAtShootingPosition = false;
+            _canShoot = false;
         }
     }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Public class methods
+
     public void SetAsShootingEnemy(Vector3 shootingPosition)
     {
-        this.shootingPosition = shootingPosition;
-        isAShootingEnemy = true;
-        canShoot = true;
-        health = 10;
+        _shootingPosition = shootingPosition;
+        _isAShootingEnemy = true;
+        _canShoot = true;
+        _health = 10;
     }
 
-    public void SetSpeed(float speed) { this.speed = speed; }
+    public void SetSpeed(float speed) { _speed = speed; }
 
-    public void SetDronePool(IObjectPool<Enemy> dronePool)
-    {
-        this.dronePool = dronePool;
-    }
+    public void SetDronePool(IObjectPool<Enemy> dronePool){_dronePool = dronePool;}
 
-    public void SetLaserPool(IObjectPool<Laser> laserPool)
-    {
-        this.laserPool = laserPool;
-    }
+    public void SetLaserPool(IObjectPool<Laser> laserPool){_laserPool = laserPool;}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Coroutines
 
     IEnumerator WaitToShoot()
     {
-        yield return new WaitForSeconds(fireRate);
-        canShoot = true;
+        yield return new WaitForSeconds(_fireRate);
+        _canShoot = true;
     }
 }

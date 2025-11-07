@@ -5,396 +5,296 @@ using TMPro;
 using UnityEngine.InputSystem;
 using UnityEngine.Pool;
 
+/// <summary>
+/// Controls the flow of the game (e.g spawning enemies, trees, lives tracking)
+/// </summary>
 public class GameManager : MonoBehaviour
 {
     public const float zBound = 10;
     public const float xBound = 17;
     public static GameManager Instance;
-    public enum Direction { LEFT, TOP, RIGHT };
-    public enum CauseOfFailure { DRONE,LASER,MISSED_TREE}
-    private bool isGameActive;
-    private bool isPaused;
-    private int score;
-    private int lives;
-    private float enemySpeed;
-    private float treeSpeed;
-    private float enemySpawnRate;
-    private float treeSpawnRate;
-    private float soundEffectsVolume;
-    private MoveBackground backgroundScript;
-    private Vector3 cameraPosition;
-    private IObjectPool<Enemy> dronePool;
-    private IObjectPool<Tree> treePool;
-    private IObjectPool<SoundOrEffect> soundOrEffectPool;
+    public enum Direction { LEFT, RIGHT, TOP };
+    public enum CauseOfFailure { DRONE, LASER, MISSED_TREE }
+    private bool _isGameActive;
+    private bool _isPaused;
+    private int _score;
+    private int _highScore;
+    private int _lives;
+    //Separate drone spawning bounds so that the drones do not appear offscreen
+    private readonly float _droneSpawningXBound = xBound - 4;
+    private readonly float _droneSpawningZBound = zBound - 4;
+    private float _enemySpeed;
+    private float _treeSpeed;
+    private float _enemySpawnRate;
+    private float _treeSpawnRate;
+    private float _soundEffectsVolume;
+    private Vector3 _cameraPosition;
+    private IObjectPool<Enemy> _dronePool;
+    private IObjectPool<Tree> _treePool;
+    private IObjectPool<SoundOrEffect> _soundOrEffectPool;
     private InputAction _pauseAction;
-    [SerializeField] private GameObject[] powerUps;
-    [SerializeField] private GameObject mainMenu;
-    [SerializeField] private GameObject guideMenu;
-    [SerializeField] private GameObject pauseMenu;
-    [SerializeField] private GameObject gameOverMenu;
-    [SerializeField] private Button playButton;
-    [SerializeField] private Button backButton;
-    [SerializeField] private Button resumeButton;
-    [SerializeField] private Button gameOverRestartButton;
-    [SerializeField] private TextMeshProUGUI scoreText;
-    [SerializeField] private TextMeshProUGUI highScoreText;
-    [SerializeField] private TextMeshProUGUI livesText;
-    [SerializeField] private AudioClip hurtSound;
-    [SerializeField] private AudioSource music;
-    [SerializeField] private Slider musicVolumeMenuSlider;
-    [SerializeField] private Slider musicVolumePauseSlider;
-    [SerializeField] private Slider soundEffectsVolumeMenuSlider;
-    [SerializeField] private Slider soundEffectsVolumePauseSlider;
-    [SerializeField] private PlayerController playerController;
+    [SerializeField] private GameObject[] _powerUps;
+    [SerializeField] private GameObject _mainMenu;
+    [SerializeField] private GameObject _guideMenu;
+    [SerializeField] private GameObject _pauseMenu;
+    [SerializeField] private GameObject _gameOverMenu;
+    [SerializeField] private MoveBackground _background;
+    [SerializeField] private Button _playButton;
+    [SerializeField] private Button _backButton;
+    [SerializeField] private Button _resumeButton;
+    [SerializeField] private Button _gameOverRestartButton;
+    [SerializeField] private TextMeshProUGUI _scoreText;
+    [SerializeField] private TextMeshProUGUI _highScoreText;
+    [SerializeField] private TextMeshProUGUI _livesText;
+    [SerializeField] private TextMeshProUGUI _gameOverCauseOfFailureText;
+    [SerializeField] private TextMeshProUGUI _gameOverScoreText;
+    [SerializeField] private TextMeshProUGUI _gameOverHighScoreText;
+    [SerializeField] private AudioClip _hurtSound;
+    [SerializeField] private AudioSource _music;
+    [SerializeField] private Slider _musicVolumeMenuSlider;
+    [SerializeField] private Slider _musicVolumePauseSlider;
+    [SerializeField] private Slider _soundEffectsVolumeMenuSlider;
+    [SerializeField] private Slider _soundEffectsVolumePauseSlider;
+    [SerializeField] private PlayerController _playerController;
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Unity methods
 
     void Awake()
     {
         if (Instance != null && Instance != this) Destroy(gameObject);
         else Instance = this;
     }
+
     void Start()
     {
         _pauseAction = InputSystem.actions.FindAction("Pause");
-        backgroundScript = GameObject.FindGameObjectWithTag("Background").GetComponent<MoveBackground>();
         if (!PlayerPrefs.HasKey("musicVolume"))
         {
-            PlayerPrefs.SetFloat("musicVolume", musicVolumeMenuSlider.value);
+            PlayerPrefs.SetFloat("musicVolume", _musicVolumeMenuSlider.value);
             PlayerPrefs.Save();
         }
-        music.volume = PlayerPrefs.GetFloat("musicVolume");
-        musicVolumeMenuSlider.value = music.volume;
+        _music.volume = PlayerPrefs.GetFloat("musicVolume");
+        _musicVolumeMenuSlider.value = _music.volume;
         if (!PlayerPrefs.HasKey("musicTime"))
         {
             PlayerPrefs.SetFloat("musicTime", 0);
             PlayerPrefs.Save();
         }
-        music.time = PlayerPrefs.GetFloat("musicTime");
+        _music.time = PlayerPrefs.GetFloat("musicTime");
         if (!PlayerPrefs.HasKey("soundEffectsVolume"))
         {
-            PlayerPrefs.SetFloat("soundEffectsVolume", soundEffectsVolumeMenuSlider.value);
+            PlayerPrefs.SetFloat("soundEffectsVolume", _soundEffectsVolumeMenuSlider.value);
             PlayerPrefs.Save();
-        } 
-        soundEffectsVolume = PlayerPrefs.GetFloat("soundEffectsVolume");
-        soundEffectsVolumeMenuSlider.value = soundEffectsVolume;
-        dronePool = ObjectPooler.Instance.GetDronePool();
-        treePool = ObjectPooler.Instance.GetTreePool();
-        soundOrEffectPool = ObjectPooler.Instance.GetSoundOrEffectPool();
-        cameraPosition = Camera.main.transform.position;
-    }
-
-    public void StartGame()
-    {
-        mainMenu.SetActive(false);
-        PlayerPrefs.SetFloat("musicVolume",musicVolumeMenuSlider.value);
-        PlayerPrefs.SetFloat("soundEffectsVolume",soundEffectsVolumeMenuSlider.value);
-        PlayerPrefs.Save();
-        musicVolumePauseSlider.value = musicVolumeMenuSlider.value;
-        soundEffectsVolumePauseSlider.value = soundEffectsVolumeMenuSlider.value;
-        enemySpawnRate = 2;
-        treeSpawnRate = 5;
-        enemySpeed = 4.0f;
-        treeSpeed = 0.5f;
-        lives = 3;
-        livesText.text = $"Lives:{lives}";
-        scoreText.text = $"Score:{score}";
-        if (!PlayerPrefs.HasKey("highScore"))
-        {
-            PlayerPrefs.SetInt("highScore", 0);
         }
-        highScoreText.text = $"High Score: {PlayerPrefs.GetInt("highScore")}"; 
-        backgroundScript.SetSpeed(treeSpeed);
-        isGameActive = true;
-        Invoke(nameof(SpawnEnemy), enemySpawnRate);
-        Invoke(nameof(SpawnTree), treeSpawnRate);
-        InvokeRepeating(nameof(IncreaseSpeed), 10, 25);
-        InvokeRepeating(nameof(IncreaseSpawnRate), 25, 25);
+        _soundEffectsVolume = PlayerPrefs.GetFloat("soundEffectsVolume");
+        _soundEffectsVolumeMenuSlider.value = _soundEffectsVolume;
+        _dronePool = ObjectPooler.Instance.GetDronePool();
+        _treePool = ObjectPooler.Instance.GetTreePool();
+        _soundOrEffectPool = ObjectPooler.Instance.GetSoundOrEffectPool();
+        _cameraPosition = Camera.main.transform.position;
     }
 
     void Update()
     {
-        if (_pauseAction.WasPressedThisFrame() && isGameActive)
+        if (_pauseAction.WasPressedThisFrame() && _isGameActive)
         {
             PauseMenu();
         }
     }
+    
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Public class methods
+
+    public void StartGame()
+    {
+        _mainMenu.SetActive(false);
+        PlayerPrefs.SetFloat("musicVolume", _musicVolumeMenuSlider.value);
+        PlayerPrefs.SetFloat("soundEffectsVolume", _soundEffectsVolumeMenuSlider.value);
+        PlayerPrefs.Save();
+        _musicVolumePauseSlider.value = _musicVolumeMenuSlider.value;
+        _soundEffectsVolumePauseSlider.value = _soundEffectsVolumeMenuSlider.value;
+        _enemySpawnRate = 2;
+        _treeSpawnRate = 5;
+        _enemySpeed = 4f;
+        _treeSpeed = 0.5f;
+        _lives = 3;
+        _livesText.text = $"Lives:{_lives}";
+        _scoreText.text = $"Score:{_score}";
+        if (!PlayerPrefs.HasKey("highScore"))
+        {
+            PlayerPrefs.SetInt("highScore", 0);
+            PlayerPrefs.Save();
+        }
+        _highScore = PlayerPrefs.GetInt("highScore");
+        _highScoreText.text = $"High Score: {_highScore}";
+        _background.SetSpeed(_treeSpeed);
+        _isGameActive = true;
+        Invoke(nameof(SpawnEnemy), _enemySpawnRate);
+        Invoke(nameof(SpawnTree), _treeSpawnRate);
+        InvokeRepeating(nameof(IncreaseSpeed), 10, 25);
+        InvokeRepeating(nameof(IncreaseSpawnRate), 25, 25);
+    }
 
     public void PauseMenu()
     {
-        isPaused = !isPaused;
-        scoreText.gameObject.SetActive(!scoreText.gameObject.activeSelf);
-        highScoreText.gameObject.SetActive(!highScoreText.gameObject.activeSelf);
-        livesText.gameObject.SetActive(!livesText.gameObject.activeSelf);
-        pauseMenu.SetActive(!pauseMenu.activeSelf);
-        Time.timeScale = isPaused ? 0 : 1;
-        if (isPaused)
+        _isPaused = !_isPaused;
+        _scoreText.gameObject.SetActive(!_scoreText.gameObject.activeSelf);
+        _highScoreText.gameObject.SetActive(!_highScoreText.gameObject.activeSelf);
+        _livesText.gameObject.SetActive(!_livesText.gameObject.activeSelf);
+        _pauseMenu.SetActive(!_pauseMenu.activeSelf);
+        Time.timeScale = _isPaused ? 0 : 1;
+        if (_isPaused) { _resumeButton.Select(); }
+        else
         {
-            resumeButton.Select();
-        }
-        if (!isPaused)
-        {
-            PlayerPrefs.SetFloat("musicVolume", musicVolumePauseSlider.value);
-            PlayerPrefs.SetFloat("soundEffectsVolume", soundEffectsVolumePauseSlider.value);
+            PlayerPrefs.SetFloat("musicVolume", _musicVolumePauseSlider.value);
+            PlayerPrefs.SetFloat("soundEffectsVolume", _soundEffectsVolumePauseSlider.value);
             PlayerPrefs.Save();
         }
     }
-    
+
     public void GuideMenu()
     {
-        mainMenu.SetActive(!mainMenu.activeSelf);
-        guideMenu.SetActive(!guideMenu.activeSelf);
-        if (mainMenu.activeSelf){playButton.Select();}
-        else{backButton.Select();}
+        _mainMenu.SetActive(!_mainMenu.activeSelf);
+        _guideMenu.SetActive(!_guideMenu.activeSelf);
+        if (_mainMenu.activeSelf) { _playButton.Select(); }
+        else { _backButton.Select(); }
     }
 
     public void AdjustMusicVolumeFromMenuSlider()
     {
-        music.volume = musicVolumeMenuSlider.value;
+        _music.volume = _musicVolumeMenuSlider.value;
     }
 
     public void AdjustSoundEffectsVolumeFromMenuSlider()
     {
-        float soundEffectsVolumeDifference = soundEffectsVolume - soundEffectsVolumeMenuSlider.value;
-        soundEffectsVolume = soundEffectsVolumeMenuSlider.value;
+        // This is done so that the testing sound is only played when the player makes a significant movement
+        // of the slider, rather than everytime it changes value when being dragged
+        float soundEffectsVolumeDifference = _soundEffectsVolume - _soundEffectsVolumeMenuSlider.value;
+        _soundEffectsVolume = _soundEffectsVolumeMenuSlider.value;
         if (soundEffectsVolumeDifference < -0.05 || soundEffectsVolumeDifference > 0.05)
         {
-            PlaySound(hurtSound);
+            PlaySound(_hurtSound);
         }
     }
 
     public void AdjustMusicVolumeFromPauseSlider()
     {
-        music.volume = musicVolumePauseSlider.value;
+        _music.volume = _musicVolumePauseSlider.value;
     }
 
     public void AdjustSoundEffectsVolumeFromPauseSlider()
     {
-        float soundEffectsVolumeDifference = soundEffectsVolume - soundEffectsVolumePauseSlider.value;
-        soundEffectsVolume = soundEffectsVolumePauseSlider.value;
+        float soundEffectsVolumeDifference = _soundEffectsVolume - _soundEffectsVolumePauseSlider.value;
+        _soundEffectsVolume = _soundEffectsVolumePauseSlider.value;
         if (soundEffectsVolumeDifference < -0.05 || soundEffectsVolumeDifference > 0.05)
         {
-            PlaySound(hurtSound);
+            PlaySound(_hurtSound);
         }
     }
 
     public void PlaySound(AudioClip clipToPlay)
     {
-        SoundOrEffect soundOrEffect = soundOrEffectPool.Get();
-        soundOrEffect.transform.position = cameraPosition;
-        soundOrEffect.SetAsSound(clipToPlay, soundEffectsVolume);
+        SoundOrEffect soundOrEffect = _soundOrEffectPool.Get();
+        // All sound is played from the camera position, otherwise it is too far away
+        // for the player to hear properly
+        soundOrEffect.transform.position = _cameraPosition;
+        soundOrEffect.SetAsSound(clipToPlay, _soundEffectsVolume);
     }
 
     public void PlayParticleEffect(Vector3 positionToPlay, SoundOrEffect.Purpose purpose)
     {
-        SoundOrEffect soundOrEffect = soundOrEffectPool.Get();
+        SoundOrEffect soundOrEffect = _soundOrEffectPool.Get();
         soundOrEffect.transform.position = positionToPlay;
         soundOrEffect.SetAsParticleEffect(purpose);
     }
 
-    public bool GetIsGameActive(){return isGameActive;}
-    public bool GetIsGamePaused() { return isPaused; }
-    public int GetLives() { return lives; }
-    public float GetEnemySpeed(){return enemySpeed;}
-    public float GetTreeSpeed() { return treeSpeed; }
-
-    Direction ChooseDirection(){
-        int randNum = Random.Range(1,4);
-        return randNum switch
-        {
-            1 => Direction.LEFT,
-            2 => Direction.TOP,
-            3 => Direction.RIGHT,
-            _ => Direction.TOP,
-        };
-    }
-
-    void SpawnEnemy()
+    public void ChangeEnemySpeed(float numToAdd)
     {
-        Direction enemySpawnDirection = ChooseDirection();
-        Enemy drone = dronePool.Get();
-        Vector3 generatedSpawn = GenerateSpawn(enemySpawnDirection, drone.transform.position.y);
-        drone.transform.position = generatedSpawn;
-        switch (enemySpawnDirection)
-        {
-            case Direction.LEFT:
-                drone.transform.rotation = Quaternion.Euler(0, 90, 0);
-                break;
-            case Direction.TOP:
-                drone.transform.rotation = Quaternion.Euler(0, -180, 0);
-                break;
-            case Direction.RIGHT:
-                drone.transform.rotation = Quaternion.Euler(0, -90, 0);
-                break;
-        }
-        if (generatedSpawn.z > -2)
-        {
-            int randNum = Random.Range(1, 10);
-            if (randNum == 3)
-            {
-                Vector3 shootingPosition;
-                switch (enemySpawnDirection)
-                {
-                    case Direction.LEFT or Direction.RIGHT:
-                        float randX = Random.Range(-xBound + 4, xBound - 4);
-                        shootingPosition = new(randX, generatedSpawn.y, generatedSpawn.z);
-                        drone.SetAsShootingEnemy(shootingPosition);
-                        break;
-                    case Direction.TOP:
-                        float randZ = Random.Range(-3f, zBound - 4);
-                        shootingPosition = new(generatedSpawn.x, generatedSpawn.y, randZ);
-                        drone.SetAsShootingEnemy(shootingPosition);
-                        break;
-                }
-            }
-        }
-        drone.SetSpeed(enemySpeed);
-        Invoke(nameof(SpawnEnemy), enemySpawnRate);
-    }
-
-    void SpawnTree(){
-        Tree tree = treePool.Get();
-        tree.transform.SetPositionAndRotation(GenerateSpawn(Direction.TOP, tree.transform.position.y), tree.transform.rotation);
-        tree.SetSpeed(treeSpeed);
-        Invoke(nameof(SpawnTree), treeSpawnRate);
-    }
-
-    Vector3 GenerateSpawn(Direction selectedDirection,float spawnedObjectYPos){
-        float randZ;
-        switch (selectedDirection)
-        {
-            case Direction.LEFT:
-                randZ = Random.Range(-zBound+4, zBound-4);
-                return new Vector3(-xBound, spawnedObjectYPos, randZ);
-            case Direction.TOP:
-                float randX = Random.Range(-xBound+4, xBound-4);
-                return new Vector3(randX, spawnedObjectYPos, zBound);
-            case Direction.RIGHT:
-                randZ = Random.Range(-zBound+4, zBound-4);
-                return new Vector3(xBound, spawnedObjectYPos, randZ);
-            default:
-                return new Vector3(xBound, spawnedObjectYPos, 3);
-        }
-    }
-
-    void IncreaseSpeed()
-    {
-        enemySpeed += 0.5f;
-        treeSpeed += 0.5f;
+        _enemySpeed += numToAdd;
         GameObject[] activeEnemies = GameObject.FindGameObjectsWithTag("Enemy");
+        foreach (GameObject enemy in activeEnemies) { enemy.GetComponent<Enemy>().SetSpeed(_enemySpeed); }
+    }
+    
+    public void ChangeTreeSpeed(float numToAdd)
+    {
+        _treeSpeed += numToAdd;
         GameObject[] activeTrees = GameObject.FindGameObjectsWithTag("Tree");
-        foreach (GameObject enemy in activeEnemies) { enemy.GetComponent<Enemy>().SetSpeed(enemySpeed); }
-        foreach (GameObject tree in activeTrees) { tree.GetComponent<Tree>().SetSpeed(treeSpeed); }
-        backgroundScript.SetSpeed(treeSpeed);
-        Direction spawnDirection = ChooseDirection();
-        int randNum = Random.Range(0, 6);
-        if (randNum == 4 && treeSpeed < 1.5f)
-        {
-            randNum = 0;
-        }
-        GameObject powerUp = Instantiate(powerUps[randNum], GenerateSpawn(spawnDirection, powerUps[randNum].transform.position.y), powerUps[randNum].transform.rotation);
-        powerUp.GetComponent<PowerUps>().SetDirection(spawnDirection);
-        playerController.IncreaseSpeed(0.5f);
-    }
-
-    void IncreaseSpawnRate()
-    {
-        if (!(enemySpawnRate - 0.3f < 1))
-        {
-            enemySpawnRate -= 0.3f;
-        }
-        if (!(treeSpawnRate - 0.3f < 1))
-        {
-            treeSpawnRate -= 0.3f;
-        }
-        Direction powerUpSpawnDirection = ChooseDirection();
-        int randNum = Random.Range(0, 4);
-        GameObject powerUp = Instantiate(powerUps[randNum], GenerateSpawn(powerUpSpawnDirection, powerUps[randNum].transform.position.y), powerUps[randNum].transform.rotation);
-        powerUp.GetComponent<PowerUps>().SetDirection(powerUpSpawnDirection);
-    }
-
-    public void DecreaseSpeed(int speedToDecrease)
-    {
-        switch (speedToDecrease)
-        {
-            case 1:
-                enemySpeed -= 1;
-                GameObject[] activeEnemies = GameObject.FindGameObjectsWithTag("Enemy");
-                foreach (GameObject enemy in activeEnemies) { enemy.GetComponent<Enemy>().SetSpeed(enemySpeed); }
-                break;
-            case 2:
-                treeSpeed -= 1;
-                GameObject[] activeTrees = GameObject.FindGameObjectsWithTag("Tree");
-                foreach (GameObject tree in activeTrees) { tree.GetComponent<Tree>().SetSpeed(treeSpeed); }
-                backgroundScript.SetSpeed(treeSpeed);
-                break;
-        }
+        foreach (GameObject tree in activeTrees) { tree.GetComponent<Tree>().SetSpeed(_treeSpeed); }  
+        _background.SetSpeed(_treeSpeed);      
     }
 
     public void UpdateScore(int numToAdd)
     {
-        score += numToAdd;
-        scoreText.text = $"Score:{score}";
-        if (score > PlayerPrefs.GetInt("highScore"))
+        _score += numToAdd;
+        _scoreText.text = $"Score:{_score}";
+        if (_score > _highScore)
         {
-            highScoreText.text = $"High Score: {score}"; 
+            _highScoreText.text = $"High Score:{_score}";
         }
     }
 
-    public void UpdateLives(int numToAdd,CauseOfFailure causeOfFailure = CauseOfFailure.DRONE){
-        //Default value is never actually used, this is for when the player's lives are increased by a power up
-        lives += numToAdd;
-        if (numToAdd < 0){PlaySound(hurtSound);}
-        livesText.text=$"Lives:{lives}";
-        if (lives==0){GameOver(causeOfFailure);}
+    public void UpdateLives(int numToAdd, CauseOfFailure causeOfFailure = CauseOfFailure.DRONE)
+    {
+        // Default value is never actually used, this is for when the player's lives are increased by a power up
+        _lives += numToAdd;
+        // If the player was hurt
+        if (numToAdd < 0) { PlaySound(_hurtSound); }
+        _livesText.text = $"Lives:{_lives}";
+        if (_lives == 0) { GameOver(causeOfFailure); }
     }
 
-    public void GameOver(CauseOfFailure causeOfFailure){
-        isGameActive=false;
+    public void GameOver(CauseOfFailure causeOfFailure)
+    {
+        _isGameActive = false;
         CancelInvoke();
-        scoreText.gameObject.SetActive(false);
-        highScoreText.gameObject.SetActive(false);
-        livesText.gameObject.SetActive(false);
+        _scoreText.gameObject.SetActive(false);
+        _highScoreText.gameObject.SetActive(false);
+        _livesText.gameObject.SetActive(false);
         switch (causeOfFailure)
         {
             case CauseOfFailure.DRONE:
-                gameOverMenu.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().text = "Game over, you were hit by a drone!";
+                _gameOverCauseOfFailureText.text = "Game over, you were hit by a drone!";
                 break;
             case CauseOfFailure.LASER:
-                gameOverMenu.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().text = "Game over, you were hit by a drone's laser!";
+                _gameOverCauseOfFailureText.text = "Game over, you were hit by a drone's laser!";
                 break;
             case CauseOfFailure.MISSED_TREE:
-                gameOverMenu.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().text = "Game over, you missed a tree!";
+                _gameOverCauseOfFailureText.text = "Game over, you missed a tree!";
                 break;
         }
-        gameOverMenu.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>().text = $"Your final score was {score}";
-        if (score > PlayerPrefs.GetInt("highScore"))
+        _gameOverScoreText.text = $"Your final score was {_score}";
+        if (_score > _highScore)
         {
-            gameOverMenu.transform.GetChild(2).gameObject.SetActive(true);
-            PlayerPrefs.SetInt("highScore", score);
+            _gameOverHighScoreText.gameObject.SetActive(true);
+            PlayerPrefs.SetInt("highScore", _score);
+            PlayerPrefs.Save();
         }
-        gameOverRestartButton.Select();
-        gameOverMenu.SetActive(true);
+        _gameOverRestartButton.Select();
+        _gameOverMenu.SetActive(true);
     }
 
     public void RestartGame()
     {
-        if (isPaused)
+        if (_isPaused)
         {
-            PlayerPrefs.SetFloat("musicVolume", musicVolumePauseSlider.value);
-            PlayerPrefs.SetFloat("soundEffectsVolume", soundEffectsVolumePauseSlider.value);
-            PlayerPrefs.Save();
+            PlayerPrefs.SetFloat("musicVolume", _musicVolumePauseSlider.value);
+            PlayerPrefs.SetFloat("soundEffectsVolume", _soundEffectsVolumePauseSlider.value);
+            if (_score > _highScore){PlayerPrefs.SetInt("highScore", _score);}
             Time.timeScale = 1;
         }
-        PlayerPrefs.SetFloat("musicTime", music.time);
+        PlayerPrefs.SetFloat("musicTime", _music.time);
         PlayerPrefs.Save();
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     public void QuitGame()
     {
-        PlayerPrefs.SetFloat("musicVolume", musicVolumeMenuSlider.value);
+        PlayerPrefs.SetFloat("musicVolume", _musicVolumeMenuSlider.value);
         PlayerPrefs.SetFloat("musicTime", 0);
-        PlayerPrefs.SetFloat("soundEffectsVolume", soundEffectsVolumeMenuSlider.value);
+        PlayerPrefs.SetFloat("soundEffectsVolume", _soundEffectsVolumeMenuSlider.value);
         PlayerPrefs.Save();
         #if UNITY_STANDALONE
             Application.Quit();
@@ -402,5 +302,129 @@ public class GameManager : MonoBehaviour
         #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
         #endif
+    }
+
+    public bool GetIsGameActive() { return _isGameActive; }
+    public bool GetIsGamePaused() { return _isPaused; }
+    public int GetLives() { return _lives; }
+    public float GetEnemySpeed() { return _enemySpeed; }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Private class methods
+
+    void SpawnEnemy()
+    {
+        Direction enemySpawnDirection = ChooseDirection();
+        Enemy drone = _dronePool.Get();
+        Vector3 generatedSpawn = GenerateSpawn(enemySpawnDirection, drone.transform.position.y);
+        drone.transform.position = generatedSpawn;
+        switch (enemySpawnDirection)
+        {
+            case Direction.LEFT:
+                drone.transform.rotation = Quaternion.Euler(0, 90, 0);
+                break;
+            case Direction.RIGHT:
+                drone.transform.rotation = Quaternion.Euler(0, -90, 0);
+                break;
+            case Direction.TOP:
+                drone.transform.rotation = Quaternion.Euler(0, -180, 0);
+                break;
+        }
+        // If a laser drone had a z value of less than -2, it would be difficult for the
+        // player to get under them and shoot them
+        if (generatedSpawn.z > -2)
+        {
+            int randNum = Random.Range(1, 11);
+            if (randNum == 3)
+            {
+                Vector3 shootingPosition;
+                switch (enemySpawnDirection)
+                {
+                    case Direction.LEFT or Direction.RIGHT:
+                        float randX = Random.Range(-_droneSpawningXBound, _droneSpawningXBound);
+                        shootingPosition = new(randX, generatedSpawn.y, generatedSpawn.z);
+                        drone.SetAsShootingEnemy(shootingPosition);
+                        break;
+                    case Direction.TOP:
+                        float randZ = Random.Range(-3f, _droneSpawningZBound);
+                        shootingPosition = new(generatedSpawn.x, generatedSpawn.y, randZ);
+                        drone.SetAsShootingEnemy(shootingPosition);
+                        break;
+                }
+            }
+        }
+        drone.SetSpeed(_enemySpeed);
+        Invoke(nameof(SpawnEnemy), _enemySpawnRate);
+    }
+
+    void SpawnTree()
+    {
+        Tree tree = _treePool.Get();
+        tree.transform.SetPositionAndRotation(GenerateSpawn(Direction.TOP, tree.transform.position.y),
+                                              tree.transform.rotation);
+        tree.SetSpeed(_treeSpeed);
+        Invoke(nameof(SpawnTree), _treeSpawnRate);
+    }
+
+    void IncreaseSpeed()
+    {
+        ChangeEnemySpeed(0.5f);
+        ChangeTreeSpeed(0.5f);
+        _playerController.IncreaseSpeed(0.5f);
+        Direction spawnDirection = ChooseDirection();
+        int randNum = Random.Range(0, 6);
+        // Getting the tree slowing power up too early can cause the trees to freeze or move backwards
+        if (randNum == 4 && _treeSpeed < 1.5f) { randNum = 0; }
+        //Power ups are not object pooled as they do not appear very frequently
+        GameObject powerUp = Instantiate(_powerUps[randNum],
+                            GenerateSpawn(spawnDirection, _powerUps[randNum].transform.position.y),
+                            _powerUps[randNum].transform.rotation);
+        powerUp.GetComponent<PowerUps>().SetDirection(spawnDirection);
+    }
+
+    void IncreaseSpawnRate()
+    {
+        if (!(_enemySpawnRate - 0.3f < 1)){_enemySpawnRate -= 0.3f;}
+        if (!(_treeSpawnRate - 0.3f < 1)){_treeSpawnRate -= 0.3f;}
+        Direction spawnDirection = ChooseDirection();
+        // The tree and drone slowing power ups are not available to get here, as you would only see their effects for 
+        // a few seconds before the drones and trees were sped up again
+        int randNum = Random.Range(0, 4);
+        GameObject powerUp = Instantiate(_powerUps[randNum],
+                                         GenerateSpawn(spawnDirection, _powerUps[randNum].transform.position.y),
+                                         _powerUps[randNum].transform.rotation);
+        powerUp.GetComponent<PowerUps>().SetDirection(spawnDirection);
+    }
+
+    Direction ChooseDirection()
+    {
+        int randNum = Random.Range(1, 4);
+        return randNum switch
+        {
+            1 => Direction.LEFT,
+            2 => Direction.RIGHT,
+            3 => Direction.TOP,
+            _ => Direction.TOP,
+        };
+    }
+
+    Vector3 GenerateSpawn(Direction selectedDirection, float spawnedObjectYPos)
+    {
+        float randZ;
+        switch (selectedDirection)
+        {
+            case Direction.LEFT:
+                randZ = Random.Range(-_droneSpawningZBound, _droneSpawningZBound);
+                return new Vector3(-xBound, spawnedObjectYPos, randZ);
+            case Direction.RIGHT:
+                randZ = Random.Range(-_droneSpawningZBound, _droneSpawningZBound);
+                return new Vector3(xBound, spawnedObjectYPos, randZ);
+            case Direction.TOP:
+                float randX = Random.Range(-_droneSpawningXBound, _droneSpawningXBound);
+                return new Vector3(randX, spawnedObjectYPos, zBound);
+            default:
+                return new Vector3(xBound, spawnedObjectYPos, 3);
+        }
     }
 }

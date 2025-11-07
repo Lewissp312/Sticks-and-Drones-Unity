@@ -760,7 +760,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Resume (Esc or P)
+  m_text: Resume
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3564,7 +3564,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Shoot sticks additional sticks right, left and behind
+  m_text: Shoot additional sticks right, left and behind
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3780,7 +3780,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Quit (Q)
+  m_text: Quit
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3890,31 +3890,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cfb025ca5b624055b09d92e017785e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  powerUps:
+  _powerUps:
   - {fileID: 1192983798335586, guid: 9e928de923724f54ea836e735efdd8b6, type: 3}
-  - {fileID: 107744, guid: 0782c4fdae5f1624ba26300a1dc7a0a7, type: 3}
-  - {fileID: 132260, guid: 510349479745aac4b9209e9326e42601, type: 3}
   - {fileID: 1761607677599557634, guid: ed0f6fcc11def76479eab4416fdc5ca4, type: 3}
+  - {fileID: 132260, guid: 510349479745aac4b9209e9326e42601, type: 3}
+  - {fileID: 107744, guid: 0782c4fdae5f1624ba26300a1dc7a0a7, type: 3}
   - {fileID: 192044, guid: 75893c944a2c7c746af3a0a53af6e913, type: 3}
   - {fileID: 2382371200879600456, guid: 33a3078cb25b53c4bbe2940b5fb5e538, type: 3}
-  mainMenu: {fileID: 766235985}
-  guideMenu: {fileID: 547656380}
-  pauseMenu: {fileID: 1006515266}
-  gameOverMenu: {fileID: 172341988}
-  playButton: {fileID: 1867827920}
-  backButton: {fileID: 727979298}
-  resumeButton: {fileID: 1483613439}
-  gameOverRestartButton: {fileID: 501497984}
-  scoreText: {fileID: 349681273}
-  highScoreText: {fileID: 1450110845}
-  livesText: {fileID: 1388158445}
-  hurtSound: {fileID: 8300000, guid: a9dbeca7e63318c4bb8facf4358759b4, type: 3}
-  music: {fileID: 963194229}
-  musicVolumeMenuSlider: {fileID: 585641812}
-  musicVolumePauseSlider: {fileID: 1299544227}
-  soundEffectsVolumeMenuSlider: {fileID: 1480313092}
-  soundEffectsVolumePauseSlider: {fileID: 193642725}
-  playerController: {fileID: 1947352564}
+  _mainMenu: {fileID: 766235985}
+  _guideMenu: {fileID: 547656380}
+  _pauseMenu: {fileID: 1006515266}
+  _gameOverMenu: {fileID: 172341988}
+  _background: {fileID: 1496074054}
+  _playButton: {fileID: 1867827920}
+  _backButton: {fileID: 727979298}
+  _resumeButton: {fileID: 1483613439}
+  _gameOverRestartButton: {fileID: 501497984}
+  _scoreText: {fileID: 349681273}
+  _highScoreText: {fileID: 1450110845}
+  _livesText: {fileID: 1388158445}
+  _gameOverCauseOfFailureText: {fileID: 596165870}
+  _gameOverScoreText: {fileID: 1653772094}
+  _gameOverHighScoreText: {fileID: 1361805189}
+  _hurtSound: {fileID: 8300000, guid: a9dbeca7e63318c4bb8facf4358759b4, type: 3}
+  _music: {fileID: 963194229}
+  _musicVolumeMenuSlider: {fileID: 585641812}
+  _musicVolumePauseSlider: {fileID: 1299544227}
+  _soundEffectsVolumeMenuSlider: {fileID: 1480313092}
+  _soundEffectsVolumePauseSlider: {fileID: 193642725}
+  _playerController: {fileID: 1947352564}
 --- !u!4 &920723639
 Transform:
   m_ObjectHideFlags: 0
@@ -4039,18 +4043,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45c0e1f24e2ce4a5b9bf1f3a7499cd45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  stick: {fileID: 6787695309390327440, guid: 006e392d17557b045b1e173abb80f1e8, type: 3}
-  tree: {fileID: 7589883273440846103, guid: 19682540d8a014522a319b1cf788aee2, type: 3}
-  soundOrEffect: {fileID: -3165820415861222715, guid: da9da91a03c6d2145ac3274b46b04e14, type: 3}
-  laser: {fileID: 1888595601185081669, guid: 8b973dccb78c226428fa2d6d7e219ccf, type: 3}
-  drones:
+  _stick: {fileID: 6787695309390327440, guid: 006e392d17557b045b1e173abb80f1e8, type: 3}
+  _tree: {fileID: 7589883273440846103, guid: 19682540d8a014522a319b1cf788aee2, type: 3}
+  _soundOrEffect: {fileID: -3165820415861222715, guid: da9da91a03c6d2145ac3274b46b04e14, type: 3}
+  _laser: {fileID: 1888595601185081669, guid: 8b973dccb78c226428fa2d6d7e219ccf, type: 3}
+  _drones:
   - {fileID: -2431564132038771588, guid: 82041367edc9649f39e1f3046e18ee6c, type: 3}
   - {fileID: -3715959437337716663, guid: 0589548715776514789369ecb0791695, type: 3}
   - {fileID: -5579522046425752148, guid: 917e12e20f52d5c4aabc858e5022eda1, type: 3}
-  trees: []
-  collectionCheck: 1
-  defaultStickCapacity: 40
-  maxSize: 60
 --- !u!1 &943428341
 GameObject:
   m_ObjectHideFlags: 0
@@ -5596,7 +5596,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Shoot: Space/Left Click/West Gamepad Button (e.g square/X), Right Trigger'
+  m_text: 'Shoot: Space/Left Click/West Gamepad Button (e.g Square/X)/Right Trigger'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -6907,7 +6907,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 722.7, y: 390.7}
-  m_SizeDelta: {x: 447.5, y: 66.7}
+  m_SizeDelta: {x: 225.13, y: 66.7}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1483613439
 MonoBehaviour:
@@ -7401,7 +7401,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: One stick is worth two for trees. Destroy dones with one stick
+  m_text: One stick is worth two for trees. Destroy drones with one stick
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -8325,8 +8325,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Normal drones can be destroyed with 5 sticks and give 3 points. Laser drones
-    are destroyed with 10 sticks and give 6 points
+  m_text: Normal drones can be destroyed with five sticks and give three points.
+    Laser drones are destroyed with ten sticks and give six points
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

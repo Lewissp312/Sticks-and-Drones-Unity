@@ -124,7 +124,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66a9c409c233a7e4cab70639d383e706, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  explosionSound: {fileID: 8300000, guid: 7c2de8e149d8346748fb31ed14cc7986, type: 3}
+  _explosionSound: {fileID: 8300000, guid: 7c2de8e149d8346748fb31ed14cc7986, type: 3}
 --- !u!54 &-2248509913649796075
 Rigidbody:
   m_ObjectHideFlags: 0

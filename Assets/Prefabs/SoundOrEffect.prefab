@@ -4936,9 +4936,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8a42827f5f709044855fa7d559a8b04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  droneExplosion: {fileID: 7267896747474803526}
-  droneDamage: {fileID: 1781551815181982121}
-  laserExplosion: {fileID: 2967162947108445306}
+  _droneExplosion: {fileID: 7267896747474803526}
+  _droneDamage: {fileID: 1781551815181982121}
+  _laserExplosion: {fileID: 2967162947108445306}
 --- !u!1001 &1549467307873079633
 PrefabInstance:
   m_ObjectHideFlags: 0

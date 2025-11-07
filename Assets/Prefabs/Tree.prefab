@@ -102,7 +102,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 149623a9ef8074b7197acd2c1eb85164, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  completedSound: {fileID: 8300000, guid: 94131806e5a30454a89fcb6679773953, type: 3}
+  _treeText: {fileID: 6023985441111968558}
+  _completedSound: {fileID: 8300000, guid: af9f934eb4288464eb120a5857921cc3, type: 3}
 --- !u!82 &5475776160993462664
 AudioSource:
   m_ObjectHideFlags: 0
@@ -278,6 +279,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2991e5d4f964d40d1a40d23b3c8c4c4a, type: 3}
+--- !u!102 &6023985441111968558 stripped
+TextMesh:
+  m_CorrespondingSourceObject: {fileID: 4980619123053997921, guid: 2991e5d4f964d40d1a40d23b3c8c4c4a, type: 3}
+  m_PrefabInstance: {fileID: 1623486521082127439}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7378203896603154274 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8134465447498298157, guid: 2991e5d4f964d40d1a40d23b3c8c4c4a, type: 3}
