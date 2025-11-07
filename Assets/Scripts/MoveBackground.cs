@@ -1,30 +1,43 @@
 using UnityEngine;
 
+[RequireComponent(typeof(BoxCollider))]
+
+/// <summary>
+/// Controls the repeating background
+/// </summary>
 public class MoveBackground : MonoBehaviour
 {
-    private float speed;
-    float pointToRepeat; 
-    private Vector3 originalPosition;
-    private BoxCollider boxCollider;
+    private float _speed;
+    private float _pointToRepeat;
+    private Vector3 _originalPosition;
+    private BoxCollider _boxCollider;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Unity methods
 
     void Awake()
     {
-        originalPosition = transform.position;
-        boxCollider = GetComponent<BoxCollider>();
-        pointToRepeat = originalPosition.z - boxCollider.size.z / 3.75f;
-    } 
+        _originalPosition = transform.position;
+        _boxCollider = GetComponent<BoxCollider>();
+        _pointToRepeat = _originalPosition.z - _boxCollider.size.z / 3.75f;
+    }
 
     void Update()
     {
         if (GameManager.Instance.GetIsGameActive())
         {
-            transform.Translate(speed * Time.deltaTime * Vector3.back);
-            if (transform.position.z <= originalPosition.z - boxCollider.size.z / 3.75f)
+            transform.Translate(_speed * Time.deltaTime * Vector3.back);
+            if (transform.position.z <= _pointToRepeat)
             {
-                transform.position = originalPosition;
+                transform.position = _originalPosition;
             }
         }
     }
 
-    public void SetSpeed(float speed) { this.speed = speed; }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Public class methods
+
+    public void SetSpeed(float speed) { _speed = speed; }
 }

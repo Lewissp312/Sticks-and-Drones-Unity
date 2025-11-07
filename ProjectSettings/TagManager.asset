@@ -17,6 +17,7 @@ TagManager:
   - TreeSpeedDown
   - DroneSpeedDown
   - Laser
+  - Armour
   layers:
   - Default
   - TransparentFX

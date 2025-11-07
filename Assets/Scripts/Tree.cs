@@ -2,46 +2,44 @@ using System;
 using UnityEngine;
 using UnityEngine.Pool;
 
+/// <summary>
+/// Controls the behaviour of trees, the player's main way of getting points
+/// and taking away their lives if they miss one
+/// </summary>
 public class Tree : MonoBehaviour
 {
-    private bool isRebuilt;
-    private int sticksNeeded;
-    private int originalSticksNeeded;
-    private float speed;
-    private readonly float zBound = GameManager.zBound;
-    private readonly float xBound = GameManager.xBound;
-    private TextMesh treeText;
-    private IObjectPool<Tree> treePool;
-    private IObjectPool<Stick> stickPool;
+    private bool _isRebuilt;
+    private int _sticksNeeded;
+    private int _originalSticksNeeded;
+    private float _speed;
+    private readonly float _zBound = GameManager.zBound;
+    private IObjectPool<Tree> _treePool;
+    private IObjectPool<Stick> _stickPool;
+    [SerializeField] private TextMesh _treeText;
+    [SerializeField] private AudioClip _completedSound;
 
-    [SerializeField] private AudioClip completedSound;
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Unity methods
 
     void Awake()
     {
-        treeText = transform.GetChild(0).gameObject.GetComponent<TextMesh>();
         ResetObject();
-    } 
-
-    void Start()
-    {
-        treePool = ObjectPooler.Instance.GetTreePool();
     }
 
     void Update()
     {
         if (GameManager.Instance.GetIsGameActive())
         {
-            transform.Translate(speed * Time.deltaTime * Vector3.forward);
+            transform.Translate(_speed * Time.deltaTime * Vector3.forward);
         }
-        if (transform.position.x> xBound ||
-        transform.position.x<-xBound ||
-        transform.position.z<-zBound)
+        if (transform.position.z < -_zBound)
         {
-            if(!isRebuilt)
+            if (!_isRebuilt)
             {
-                GameManager.Instance.UpdateLives(-1,GameManager.CauseOfFailure.MISSED_TREE);
+                GameManager.Instance.UpdateLives(-1, GameManager.CauseOfFailure.MISSED_TREE);
             }
-            treePool.Release(this);
+            _treePool.Release(this);
         }
     }
 
@@ -52,25 +50,28 @@ public class Tree : MonoBehaviour
             GameObject otherObject = other.gameObject;
             if (otherObject.CompareTag("Stick"))
             {
-                if (!isRebuilt)
+                if (!_isRebuilt)
                 {
                     Stick stickInstance = otherObject.GetComponent<Stick>();
-                    sticksNeeded -= stickInstance.GetIsSuperStick() ? 2 : 1;
-                    if (sticksNeeded <= 0)
+                    _sticksNeeded -= stickInstance.GetIsSuperStick() ? 2 : 1;
+                    if (_sticksNeeded <= 0)
                     {
-                        GameManager.Instance.PlaySound(completedSound);
-                        GameManager.Instance.UpdateScore(originalSticksNeeded);
-                        treeText.text = "Done!";
-                        if (treeText.fontSize != 20) { treeText.fontSize = 20;}
-                        isRebuilt = true;
+                        GameManager.Instance.PlaySound(_completedSound);
+                        GameManager.Instance.UpdateScore(_originalSticksNeeded);
+                        _treeText.text = "Done!";
+                        if (_treeText.fontSize != 20) { _treeText.fontSize = 20; }
+                        _isRebuilt = true;
                     }
-                    else { treeText.text = $"{sticksNeeded}"; }
-                    try { stickPool.Release(stickInstance); } catch (Exception) { }
+                    else { _treeText.text = $"{_sticksNeeded}"; }
+                    // The stick is returned to the pool here instead of the stick script, as
+                    // the isSuperStick value would always be set to false by the time it could
+                    // be evaluated here
+                    try { _stickPool.Release(stickInstance); } catch (Exception) { }
                 }
             }
-            else if (otherObject.CompareTag("TreeDangerWall") && !isRebuilt)
+            else if (otherObject.CompareTag("TreeDangerWall") && !_isRebuilt)
             {
-                treeText.fontSize = 70;
+                _treeText.fontSize = 70;
             }
         }
     }
@@ -80,34 +81,26 @@ public class Tree : MonoBehaviour
         ResetObject();
     }
 
-    public bool GetIsRebuilt()
-    {
-        return isRebuilt;
-    }
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public TextMesh GetTreeText()
-    {
-        return treeText;
-    }
+    // Public class methods
 
-    public void SetSpeed(float speedToSet) { speed = speedToSet; }
+    public void SetSpeed(float speed) { _speed = speed; }
 
-    public void SetTreePool(IObjectPool<Tree> treePool)
-    {
-        this.treePool = treePool;
-    }
+    public void SetTreePool(IObjectPool<Tree> treePool) { _treePool = treePool; }
 
-    public void SetStickPool(IObjectPool<Stick> stickPool)
-    {
-        this.stickPool = stickPool;
-    }
+    public void SetStickPool(IObjectPool<Stick> stickPool) { _stickPool = stickPool; }
 
-    public void ResetObject()
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Private class methods
+
+    void ResetObject()
     {
-        sticksNeeded = UnityEngine.Random.Range(1, 6);
-        originalSticksNeeded = sticksNeeded;
-        treeText.text = $"{sticksNeeded}";
-        treeText.fontSize = 20;
-        isRebuilt = false;
+        _sticksNeeded = UnityEngine.Random.Range(1, 6);
+        _originalSticksNeeded = _sticksNeeded;
+        _treeText.text = $"{_sticksNeeded}";
+        _treeText.fontSize = 20;
+        _isRebuilt = false;
     }
 }

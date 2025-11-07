@@ -3,78 +3,92 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Pool;
 
+[RequireComponent(typeof(AudioSource))]
+
+/// <summary>
+/// Controls the behaviour of SoundOrEffect objects for playing sounds or spawning
+/// particle effects at specific places
+/// </summary>
 public class SoundOrEffect : MonoBehaviour
 {
     public enum Purpose { SOUND, DRONE_EXPLOSION, DRONE_DAMAGE,LASER_EXPLOSION }
-    private Purpose purpose;
-    private AudioSource audioSource;
-    private IObjectPool<SoundOrEffect> soundOrEffectPool;
-    [SerializeField] private ParticleSystem droneExplosion;
-    [SerializeField] private ParticleSystem droneDamage;
-    [SerializeField] private ParticleSystem laserExplosion;
+    private Purpose _purpose;
+    private AudioSource _audioSource;
+    private IObjectPool<SoundOrEffect> _soundOrEffectPool;
+    [SerializeField] private ParticleSystem _droneExplosion;
+    [SerializeField] private ParticleSystem _droneDamage;
+    [SerializeField] private ParticleSystem _laserExplosion;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Unity methods
 
     void Awake()
     {
-        audioSource = GetComponent<AudioSource>();
-        purpose = Purpose.SOUND;
+        _audioSource = GetComponent<AudioSource>();
+        _purpose = Purpose.SOUND;
     }
+    
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void OnDisable()
-    {
-    }
+// Public class methods
 
     public void SetAsSound(AudioClip clipToPlay,float volumeToPlayAt)
     {
-        purpose = Purpose.SOUND;
-        audioSource.clip = clipToPlay;
-        audioSource.volume = volumeToPlayAt;
-        audioSource.Play();
+        _purpose = Purpose.SOUND;
+        _audioSource.clip = clipToPlay;
+        _audioSource.volume = volumeToPlayAt;
+        _audioSource.Play();
         StartCoroutine(WaitForSoundOrEffectToFinish(clipToPlay.length));
     }
 
     public void SetAsParticleEffect(Purpose purpose)
     {
-        this.purpose = purpose;
-        switch (purpose)
+        _purpose = purpose;
+        switch (_purpose)
         {
             case Purpose.DRONE_EXPLOSION:
-                droneExplosion.Play();
-                StartCoroutine(WaitForSoundOrEffectToFinish(droneExplosion.main.duration));
+                _droneExplosion.Play();
+                StartCoroutine(WaitForSoundOrEffectToFinish(_droneExplosion.main.duration));
                 break;
             case Purpose.DRONE_DAMAGE:
-                droneDamage.Play();
-                StartCoroutine(WaitForSoundOrEffectToFinish(droneDamage.main.duration));
+                _droneDamage.Play();
+                StartCoroutine(WaitForSoundOrEffectToFinish(_droneDamage.main.duration));
                 break;
             case Purpose.LASER_EXPLOSION:
-                laserExplosion.Play();
-                StartCoroutine(WaitForSoundOrEffectToFinish(laserExplosion.main.duration));
+                _laserExplosion.Play();
+                StartCoroutine(WaitForSoundOrEffectToFinish(_laserExplosion.main.duration));
                 break;
         }
     }
 
     public void SetSoundOrEffectPool(IObjectPool<SoundOrEffect> soundOrEffectPool)
     {
-        this.soundOrEffectPool = soundOrEffectPool;
+        _soundOrEffectPool = soundOrEffectPool;
     }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Coroutines
 
     IEnumerator WaitForSoundOrEffectToFinish(float timeToWait)
     {
         yield return new WaitForSeconds(timeToWait);
-        switch (purpose)
+        switch (_purpose)
         {
             case Purpose.DRONE_EXPLOSION:
-                droneExplosion.Clear();
-                droneExplosion.Pause();
+                _droneExplosion.Clear();
+                _droneExplosion.Pause();
                 break;
             case Purpose.DRONE_DAMAGE:
-                droneDamage.Clear();
-                droneDamage.Pause();
+                _droneDamage.Clear();
+                _droneDamage.Pause();
                 break;
             case Purpose.LASER_EXPLOSION:
-                laserExplosion.Clear();
-                laserExplosion.Pause();
+                _laserExplosion.Clear();
+                _laserExplosion.Pause();
                 break;
         }
-        try{soundOrEffectPool.Release(this);} catch (Exception){}
+        try{_soundOrEffectPool.Release(this);} catch (Exception){}
     }
 }
